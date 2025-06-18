@@ -113,37 +113,42 @@ export default function Dashboard() {
         </div>
 
         {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="space-y-2">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="space-y-2 flex-1">
             <label className="text-sm font-medium">Planilha Ativa</label>
             <div className="flex gap-2">
               <Select value={selectedBudget} onValueChange={handleBudgetChange}>
-                <SelectTrigger className="w-full sm:w-[280px]">
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione uma planilha" />
                 </SelectTrigger>
                 <SelectContent>
                   {budgets.map((budget) => (
                     <SelectItem key={budget.id} value={budget.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{budget.name}</span>
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="truncate">{budget.name}</span>
                         {budget.collaborators.length > 0 && (
-                          <Users className="w-3 h-3 text-muted-foreground" />
+                          <Users className="w-3 h-3 text-muted-foreground shrink-0" />
                         )}
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={handleCreateBudget}>
+              <Button
+                variant="outline"
+                onClick={handleCreateBudget}
+                className="shrink-0"
+              >
                 <Plus className="w-4 h-4" />
+                <span className="sr-only">Nova planilha</span>
               </Button>
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 w-full lg:w-auto lg:min-w-[200px]">
             <label className="text-sm font-medium">Período</label>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
