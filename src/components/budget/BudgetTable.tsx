@@ -29,65 +29,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Edit2, Trash2, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface BudgetEntry {
-  id: string;
-  date: string;
-  description: string;
-  category: string;
-  amount: number;
-  type: "income" | "expense";
-}
-
-const mockEntries: BudgetEntry[] = [
-  {
-    id: "1",
-    date: "2024-01-15",
-    description: "Salário",
-    category: "Renda",
-    amount: 5000,
-    type: "income",
-  },
-  {
-    id: "2",
-    date: "2024-01-16",
-    description: "Supermercado",
-    category: "Alimentação",
-    amount: -250,
-    type: "expense",
-  },
-  {
-    id: "3",
-    date: "2024-01-18",
-    description: "Gasolina",
-    category: "Transporte",
-    amount: -120,
-    type: "expense",
-  },
-  {
-    id: "4",
-    date: "2024-01-20",
-    description: "Freelance",
-    category: "Renda Extra",
-    amount: 800,
-    type: "income",
-  },
-];
-
-const categories = [
-  "Renda",
-  "Renda Extra",
-  "Alimentação",
-  "Transporte",
-  "Moradia",
-  "Saúde",
-  "Educação",
-  "Lazer",
-  "Outros",
-];
+import { useUserData, BudgetEntry } from "@/contexts/UserDataContext";
+import { toast } from "sonner";
 
 export default function BudgetTable() {
-  const [entries, setEntries] = useState<BudgetEntry[]>(mockEntries);
+  const { entries, categories, addEntry, updateEntry, deleteEntry } =
+    useUserData();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<BudgetEntry | null>(null);
   const [formData, setFormData] = useState({
@@ -114,10 +62,12 @@ export default function BudgetTable() {
     e.preventDefault();
 
     const amount = parseFloat(formData.amount);
-    if (!amount || !formData.description || !formData.category) return;
+    if (!amount || !formData.description || !formData.category) {
+      toast.error("Por favor, preencha todos os campos");
+      return;
+    }
 
-    const newEntry: BudgetEntry = {
-      id: editingEntry?.id || Date.now().toString(),
+    const entryData = {
       date: formData.date,
       description: formData.description,
       category: formData.category,
@@ -127,9 +77,11 @@ export default function BudgetTable() {
     };
 
     if (editingEntry) {
-      setEntries(entries.map((e) => (e.id === editingEntry.id ? newEntry : e)));
+      updateEntry(editingEntry.id, entryData);
+      toast.success("Lançamento atualizado!");
     } else {
-      setEntries([...entries, newEntry]);
+      addEntry(entryData);
+      toast.success("Lançamento adicionado!");
     }
 
     resetForm();
@@ -160,7 +112,8 @@ export default function BudgetTable() {
   };
 
   const handleDelete = (id: string) => {
-    setEntries(entries.filter((e) => e.id !== id));
+    deleteEntry(id);
+    toast.success("Lançamento excluído!");
   };
 
   const formatCurrency = (amount: number) => {
@@ -173,6 +126,9 @@ export default function BudgetTable() {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("pt-BR");
   };
+
+  // Get available categories for the form
+  const availableCategories = categories.map((cat) => cat.name);
 
   return (
     <div className="space-y-6">
@@ -302,7 +258,7 @@ export default function BudgetTable() {
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((category) => (
+                    {availableCategories.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>
@@ -342,64 +298,73 @@ export default function BudgetTable() {
       {/* Entries Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">
-                  <Calendar className="w-4 h-4 inline mr-2" />
-                  Data
-                </TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="w-[100px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {entries.map((entry) => (
-                <TableRow key={entry.id}>
-                  <TableCell className="font-medium">
-                    {formatDate(entry.date)}
-                  </TableCell>
-                  <TableCell>{entry.description}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{entry.category}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={cn(
-                        "font-medium",
-                        entry.type === "income"
-                          ? "text-success"
-                          : "text-destructive",
-                      )}
-                    >
-                      {formatCurrency(entry.amount)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEdit(entry)}
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(entry.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {entries.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">
+                Nenhum lançamento encontrado. Comece adicionando seu primeiro
+                lançamento!
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">
+                    <Calendar className="w-4 h-4 inline mr-2" />
+                    Data
+                  </TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="w-[100px]">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {entries.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell className="font-medium">
+                      {formatDate(entry.date)}
+                    </TableCell>
+                    <TableCell>{entry.description}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{entry.category}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span
+                        className={cn(
+                          "font-medium",
+                          entry.type === "income"
+                            ? "text-success"
+                            : "text-destructive",
+                        )}
+                      >
+                        {formatCurrency(entry.amount)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEdit(entry)}
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(entry.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
