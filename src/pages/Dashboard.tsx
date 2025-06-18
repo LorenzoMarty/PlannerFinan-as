@@ -396,7 +396,7 @@ export default function Dashboard() {
             <BudgetTable />
           </div>
           <div>
-            <CategoryChart />
+            <CategoryChart filteredEntries={filteredEntries} />
           </div>
         </div>
       </div>

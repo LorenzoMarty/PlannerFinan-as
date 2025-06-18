@@ -70,14 +70,21 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-export default function CategoryChart() {
+interface CategoryChartProps {
+  filteredEntries?: any[];
+}
+
+export default function CategoryChart({ filteredEntries }: CategoryChartProps) {
   const { entries, categories } = useUserData();
+
+  // Use filtered entries if provided, otherwise use all entries
+  const chartEntries = filteredEntries || entries;
 
   // Calculate category data from entries
   const categoryData = categories
     .filter((cat) => cat.type === "expense")
     .map((category) => {
-      const categoryEntries = entries.filter(
+      const categoryEntries = chartEntries.filter(
         (entry) => entry.category === category.name && entry.type === "expense",
       );
       const value = categoryEntries.reduce(
