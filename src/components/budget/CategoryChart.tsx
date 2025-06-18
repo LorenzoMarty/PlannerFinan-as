@@ -8,22 +8,13 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
+import { useUserData } from "@/contexts/UserDataContext";
 
 interface CategoryData {
   name: string;
   value: number;
   color: string;
 }
-
-const mockData: CategoryData[] = [
-  { name: "Alimentação", value: 850, color: "#ef4444" },
-  { name: "Transporte", value: 620, color: "#f97316" },
-  { name: "Moradia", value: 1200, color: "#eab308" },
-  { name: "Lazer", value: 300, color: "#22c55e" },
-  { name: "Saúde", value: 180, color: "#3b82f6" },
-  { name: "Educação", value: 400, color: "#8b5cf6" },
-  { name: "Outros", value: 150, color: "#6b7280" },
-];
 
 const RADIAN = Math.PI / 180;
 const renderCustomizedLabel = ({
@@ -73,7 +64,52 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 export default function CategoryChart() {
-  const total = mockData.reduce((sum, item) => sum + item.value, 0);
+  const { entries, categories } = useUserData();
+
+  // Calculate category data from entries
+  const categoryData = categories
+    .filter((cat) => cat.type === "expense")
+    .map((category) => {
+      const categoryEntries = entries.filter(
+        (entry) => entry.category === category.name && entry.type === "expense",
+      );
+      const value = categoryEntries.reduce(
+        (sum, entry) => sum + Math.abs(entry.amount),
+        0,
+      );
+      return {
+        name: category.name,
+        value,
+        color: category.color,
+      };
+    })
+    .filter((item) => item.value > 0) // Only show categories with expenses
+    .sort((a, b) => b.value - a.value); // Sort by value descending
+
+  const total = categoryData.reduce((sum, item) => sum + item.value, 0);
+
+  if (categoryData.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Despesas por Categoria
+            <span className="text-sm font-normal text-muted-foreground">
+              {new Date().toLocaleDateString("pt-BR", {
+                month: "long",
+                year: "numeric",
+              })}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+            <p>Nenhuma despesa registrada ainda</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -81,7 +117,10 @@ export default function CategoryChart() {
         <CardTitle className="flex items-center gap-2">
           Despesas por Categoria
           <span className="text-sm font-normal text-muted-foreground">
-            Janeiro 2024
+            {new Date().toLocaleDateString("pt-BR", {
+              month: "long",
+              year: "numeric",
+            })}
           </span>
         </CardTitle>
       </CardHeader>
@@ -92,7 +131,7 @@ export default function CategoryChart() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={mockData}
+                  data={categoryData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -101,7 +140,7 @@ export default function CategoryChart() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {mockData.map((entry, index) => (
+                  {categoryData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -113,7 +152,7 @@ export default function CategoryChart() {
           {/* Legend */}
           <div className="space-y-3 lg:min-w-[200px]">
             <h4 className="font-medium text-sm">Categorias</h4>
-            {mockData.map((item) => {
+            {categoryData.map((item) => {
               const percentage = ((item.value / total) * 100).toFixed(1);
               return (
                 <div
