@@ -152,6 +152,15 @@
   }
 }
 
+/* Hide any accessibility warning overlays in development */
+@media (max-width: 9999px) {
+  [data-radix-accessibility-warning],
+  [data-accessibility-warning],
+  .radix-accessibility-warning {
+    display: none !important;
+  }
+}
+
 /* Settings CSS Classes */
 .high-contrast {
   --border: 0 0% 20%;
