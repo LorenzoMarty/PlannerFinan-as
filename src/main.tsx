@@ -48,7 +48,24 @@ if (import.meta.env.DEV) {
     // Filter any Radix UI accessibility warnings
     if (
       fullMessage.includes("accessible for screen reader users") ||
-      fullMessage.includes("radix-ui.com/primitives/docs")
+      fullMessage.includes("radix-ui.com/primitives/docs") ||
+      fullMessage.includes("for the component to be accessible")
+    ) {
+      return true;
+    }
+
+    // Filter dropdown menu accessibility warnings
+    if (
+      fullMessage.includes("DropdownMenu") &&
+      fullMessage.includes("accessibility")
+    ) {
+      return true;
+    }
+
+    // Filter Select component accessibility warnings
+    if (
+      fullMessage.includes("SelectContent") &&
+      fullMessage.includes("accessibility")
     ) {
       return true;
     }
