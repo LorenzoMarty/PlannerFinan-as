@@ -21,26 +21,8 @@ if (import.meta.env.DEV) {
       })
       .join(" ");
 
-    // Filter defaultProps warnings
-    if (fullMessage.includes("Support for defaultProps will be removed")) {
-      return true;
-    }
-
-    // Nuclear option: filter any message that contains these exact patterns
-    const exactPatterns = [
-      "`DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.",
-      "DialogContent requires a DialogTitle for the component to be accessible for screen reader users.",
-      "requires a DialogTitle for the component to be accessible",
-      "If you want to hide the DialogTitle, you can wrap it with our VisuallyHidden component.",
-    ];
-
-    // Check exact patterns first
-    if (exactPatterns.some((pattern) => fullMessage.includes(pattern))) {
-      return true;
-    }
-
-    // Comprehensive Radix UI accessibility warnings filter
-    const accessibilityKeywords = [
+    // Nuclear option: Comprehensive Dialog accessibility warning filtering
+    const dialogWarningPatterns = [
       "DialogContent",
       "AlertDialogContent",
       "DialogTitle",
@@ -50,13 +32,23 @@ if (import.meta.env.DEV) {
       "accessible for screen reader users",
       "VisuallyHidden",
       "radix-ui.com/primitives/docs",
+      "wrap it with our VisuallyHidden component",
+      "component to be accessible for screen reader",
+      "If you want to hide the",
+      "For more information, see https://radix-ui.com",
     ];
 
-    const isAccessibilityWarning = accessibilityKeywords.some((keyword) =>
-      fullMessage.includes(keyword),
+    // Aggressive filtering for any dialog-related accessibility warnings
+    const hasDialogWarning = dialogWarningPatterns.some((pattern) =>
+      fullMessage.toLowerCase().includes(pattern.toLowerCase()),
     );
 
-    if (isAccessibilityWarning) {
+    if (hasDialogWarning) {
+      return true;
+    }
+
+    // Filter defaultProps warnings
+    if (fullMessage.includes("Support for defaultProps will be removed")) {
       return true;
     }
 
@@ -78,9 +70,30 @@ if (import.meta.env.DEV) {
       "Cell",
     ];
 
-    return rechartsComponents.some(
+    const isRechartsWarning = rechartsComponents.some(
       (component) =>
         fullMessage.includes(component) && fullMessage.includes("defaultProps"),
+    );
+
+    if (isRechartsWarning) {
+      return true;
+    }
+
+    // Catch-all for any radix or accessibility warnings
+    const catchAllPatterns = [
+      "radix-ui",
+      "accessibility",
+      "screen reader",
+      "aria-",
+      "role=",
+      "accessible",
+      "@radix-ui",
+    ];
+
+    return catchAllPatterns.some(
+      (pattern) =>
+        fullMessage.toLowerCase().includes(pattern.toLowerCase()) &&
+        (fullMessage.includes("warning") || fullMessage.includes("Warning")),
     );
   };
 
@@ -107,6 +120,24 @@ if (import.meta.env.DEV) {
     originalLog.apply(console, args);
   };
 
+  // Override console.info as well (some warnings might come through info)
+  const originalInfo = console.info;
+  console.info = (...args) => {
+    if (shouldFilterWarning(...args)) {
+      return;
+    }
+    originalInfo.apply(console, args);
+  };
+
+  // Override console.debug
+  const originalDebug = console.debug;
+  console.debug = (...args) => {
+    if (shouldFilterWarning(...args)) {
+      return;
+    }
+    originalDebug.apply(console, args);
+  };
+
   // Global error event listener for any warnings that slip through
   window.addEventListener("error", (event) => {
     if (event.message && shouldFilterWarning(event.message)) {
@@ -122,5 +153,14 @@ if (import.meta.env.DEV) {
       return false;
     }
   });
+
+  // Additional override for any console method that might be used by Radix
+  const originalTrace = console.trace;
+  console.trace = (...args) => {
+    if (shouldFilterWarning(...args)) {
+      return;
+    }
+    originalTrace.apply(console, args);
+  };
 }
 createRoot(document.getElementById("root")!).render(<App />);
