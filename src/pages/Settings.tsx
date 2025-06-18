@@ -1,8 +1,21 @@
+import { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import {
   Settings as SettingsIcon,
   Palette,
@@ -11,203 +24,844 @@ import {
   Globe,
   Moon,
   Sun,
+  Monitor,
+  Type,
+  Layout,
+  Zap,
+  Download,
+  Upload,
+  User,
+  Key,
+  Database,
+  Accessibility,
+  Volume2,
+  Eye,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+const themeColors = [
+  { name: "Azul", value: "blue", class: "bg-blue-500" },
+  { name: "Verde", value: "green", class: "bg-green-500" },
+  { name: "Roxo", value: "purple", class: "bg-purple-500" },
+  { name: "Rosa", value: "pink", class: "bg-pink-500" },
+  { name: "Laranja", value: "orange", class: "bg-orange-500" },
+  { name: "Vermelho", value: "red", class: "bg-red-500" },
+];
+
+const fontOptions = [
+  { name: "Inter (Padrão)", value: "inter" },
+  { name: "Roboto", value: "roboto" },
+  { name: "Open Sans", value: "opensans" },
+  { name: "Lato", value: "lato" },
+  { name: "Poppins", value: "poppins" },
+];
+
+const layoutOptions = [
+  { name: "Compacto", value: "compact" },
+  { name: "Padrão", value: "default" },
+  { name: "Espaçoso", value: "spacious" },
+];
 
 export default function Settings() {
+  const [settings, setSettings] = useState({
+    // Appearance
+    theme: "light",
+    primaryColor: "blue",
+    font: "inter",
+    fontSize: [16],
+    layout: "default",
+    darkMode: false,
+    highContrast: false,
+    reducedMotion: false,
+
+    // Notifications
+    emailNotifications: true,
+    collaborationNotifications: true,
+    reminderNotifications: false,
+    marketingEmails: false,
+    pushNotifications: true,
+
+    // Privacy & Security
+    twoFactorAuth: false,
+    dataSharing: false,
+    analyticsTracking: true,
+    sessionTimeout: [30],
+
+    // Accessibility
+    screenReader: false,
+    keyboardNavigation: true,
+    voiceAnnouncements: false,
+    largeButtons: false,
+
+    // General
+    language: "pt-BR",
+    currency: "BRL",
+    timezone: "America/Sao_Paulo",
+    dateFormat: "DD/MM/YYYY",
+    numberFormat: "1.234,56",
+  });
+
+  const handleSettingChange = (key: string, value: any) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    toast.success("Configuração atualizada!");
+  };
+
+  const handleExportSettings = () => {
+    const dataStr = JSON.stringify(settings, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "plannerfin-settings.json";
+    link.click();
+    toast.success("Configurações exportadas!");
+  };
+
+  const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedSettings = JSON.parse(e.target?.result as string);
+          setSettings(importedSettings);
+          toast.success("Configurações importadas com sucesso!");
+        } catch (error) {
+          toast.error("Erro ao importar configurações");
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const resetToDefaults = () => {
+    // Reset to default settings
+    const defaultSettings = {
+      theme: "light",
+      primaryColor: "blue",
+      font: "inter",
+      fontSize: [16],
+      layout: "default",
+      darkMode: false,
+      highContrast: false,
+      reducedMotion: false,
+      emailNotifications: true,
+      collaborationNotifications: true,
+      reminderNotifications: false,
+      marketingEmails: false,
+      pushNotifications: true,
+      twoFactorAuth: false,
+      dataSharing: false,
+      analyticsTracking: true,
+      sessionTimeout: [30],
+      screenReader: false,
+      keyboardNavigation: true,
+      voiceAnnouncements: false,
+      largeButtons: false,
+      language: "pt-BR",
+      currency: "BRL",
+      timezone: "America/Sao_Paulo",
+      dateFormat: "DD/MM/YYYY",
+      numberFormat: "1.234,56",
+    };
+    setSettings(defaultSettings);
+    toast.success("Configurações restauradas para o padrão!");
+  };
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Configurações</h1>
-          <p className="text-muted-foreground">
-            Personalize sua experiência no PlannerFin
-          </p>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Configurações</h1>
+            <p className="text-muted-foreground">
+              Personalize sua experiência no PlannerFin
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleExportSettings}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById("import-file")?.click()}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Importar
+            </Button>
+            <input
+              id="import-file"
+              type="file"
+              accept=".json"
+              onChange={handleImportSettings}
+              className="hidden"
+            />
+            <Button variant="destructive" onClick={resetToDefaults}>
+              Restaurar Padrão
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Appearance Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="w-5 h-5" />
-                Aparência e Personalização
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Tema Escuro</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Alterar entre tema claro e escuro
-                  </p>
-                </div>
-                <Switch />
-              </div>
+        <Tabs defaultValue="appearance" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+            <TabsTrigger value="appearance">Aparência</TabsTrigger>
+            <TabsTrigger value="notifications">Notificações</TabsTrigger>
+            <TabsTrigger value="privacy">Privacidade</TabsTrigger>
+            <TabsTrigger value="accessibility">Acessibilidade</TabsTrigger>
+            <TabsTrigger value="general">Geral</TabsTrigger>
+          </TabsList>
 
-              <div className="border-dashed border-2 border-muted-foreground/25 rounded-lg p-6 text-center">
-                <h4 className="font-semibold mb-2">Personalização Completa</h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Em breve você poderá personalizar:
-                </p>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Cores da interface</li>
-                  <li>• Fontes e tamanhos</li>
-                  <li>• Layout dos componentes</li>
-                  <li>• Estilo dos gráficos</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Appearance Settings */}
+          <TabsContent value="appearance" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Theme */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="w-5 h-5" />
+                    Tema e Cores
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <Label>Modo de Exibição</Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { value: "light", icon: Sun, label: "Claro" },
+                        { value: "dark", icon: Moon, label: "Escuro" },
+                        { value: "system", icon: Monitor, label: "Sistema" },
+                      ].map((mode) => (
+                        <Button
+                          key={mode.value}
+                          variant={
+                            settings.theme === mode.value
+                              ? "default"
+                              : "outline"
+                          }
+                          className="h-auto p-3 flex flex-col gap-2"
+                          onClick={() =>
+                            handleSettingChange("theme", mode.value)
+                          }
+                        >
+                          <mode.icon className="w-4 h-4" />
+                          <span className="text-xs">{mode.label}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <Label>Cor Primária</Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {themeColors.map((color) => (
+                        <Button
+                          key={color.value}
+                          variant="outline"
+                          className={cn(
+                            "h-12 relative overflow-hidden",
+                            settings.primaryColor === color.value &&
+                              "ring-2 ring-primary",
+                          )}
+                          onClick={() =>
+                            handleSettingChange("primaryColor", color.value)
+                          }
+                        >
+                          <div
+                            className={cn("absolute inset-0", color.class)}
+                          />
+                          <span className="relative z-10 text-white font-medium text-xs">
+                            {color.name}
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Alto Contraste</Label>
+                      <Switch
+                        checked={settings.highContrast}
+                        onCheckedChange={(checked) =>
+                          handleSettingChange("highContrast", checked)
+                        }
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Aumenta o contraste para melhor visibilidade
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Typography */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Type className="w-5 h-5" />
+                    Tipografia
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <Label>Fonte</Label>
+                    <Select
+                      value={settings.font}
+                      onValueChange={(value) =>
+                        handleSettingChange("font", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {fontOptions.map((font) => (
+                          <SelectItem key={font.value} value={font.value}>
+                            {font.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Tamanho da Fonte: {settings.fontSize[0]}px</Label>
+                    <Slider
+                      value={settings.fontSize}
+                      onValueChange={(value) =>
+                        handleSettingChange("fontSize", value)
+                      }
+                      max={24}
+                      min={12}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Pequeno</span>
+                      <span>Grande</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p style={{ fontSize: `${settings.fontSize[0]}px` }}>
+                      Exemplo de texto com o tamanho selecionado. O PlannerFin
+                      facilita o controle das suas finanças.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Layout */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Layout className="w-5 h-5" />
+                    Layout e Espaçamento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <Label>Densidade do Layout</Label>
+                    <div className="grid grid-cols-1 gap-3">
+                      {layoutOptions.map((layout) => (
+                        <Button
+                          key={layout.value}
+                          variant={
+                            settings.layout === layout.value
+                              ? "default"
+                              : "outline"
+                          }
+                          className="justify-start"
+                          onClick={() =>
+                            handleSettingChange("layout", layout.value)
+                          }
+                        >
+                          {layout.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Reduzir Animações</Label>
+                      <Switch
+                        checked={settings.reducedMotion}
+                        onCheckedChange={(checked) =>
+                          handleSettingChange("reducedMotion", checked)
+                        }
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Diminui animações para melhor performance
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Notifications */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="w-5 h-5" />
-                Notificações
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Email</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receber resumos mensais por email
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
+          <TabsContent value="notifications" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="w-5 h-5" />
+                    Notificações por Email
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    {
+                      key: "emailNotifications",
+                      title: "Resumos Mensais",
+                      description: "Receber relatórios financeiros por email",
+                    },
+                    {
+                      key: "collaborationNotifications",
+                      title: "Colaboração",
+                      description: "Atividades de colaboradores em planilhas",
+                    },
+                    {
+                      key: "reminderNotifications",
+                      title: "Lembretes",
+                      description: "Lembrar de adicionar lançamentos",
+                    },
+                    {
+                      key: "marketingEmails",
+                      title: "Novidades e Dicas",
+                      description: "Receber dicas financeiras e atualizações",
+                    },
+                  ].map((notification) => (
+                    <div
+                      key={notification.key}
+                      className="flex items-center justify-between"
+                    >
+                      <div>
+                        <Label className="text-base">
+                          {notification.title}
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          {notification.description}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={
+                          settings[
+                            notification.key as keyof typeof settings
+                          ] as boolean
+                        }
+                        onCheckedChange={(checked) =>
+                          handleSettingChange(notification.key, checked)
+                        }
+                      />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Colaboração</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Notificar sobre atividades de colaboradores
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="w-5 h-5" />
+                    Notificações Push
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base">Notificações Push</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Receber notificações no navegador
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.pushNotifications}
+                      onCheckedChange={(checked) =>
+                        handleSettingChange("pushNotifications", checked)
+                      }
+                    />
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Lembretes</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Lembrar de adicionar lançamentos
-                  </p>
-                </div>
-                <Switch />
-              </div>
-            </CardContent>
-          </Card>
+                  {settings.pushNotifications && (
+                    <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                      <p className="text-sm">
+                        <strong>Dica:</strong> As notificações push funcionam
+                        mesmo quando o PlannerFin não está aberto no navegador.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Privacy & Security */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Privacidade e Segurança
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">
-                    Verificação em duas etapas
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aumentar a segurança da sua conta
-                  </p>
+          <TabsContent value="privacy" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    Segurança da Conta
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base">
+                        Autenticação de Dois Fatores
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Adiciona uma camada extra de segurança
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.twoFactorAuth}
+                      onCheckedChange={(checked) =>
+                        handleSettingChange("twoFactorAuth", checked)
+                      }
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <Label>
+                      Timeout da Sessão: {settings.sessionTimeout[0]} minutos
+                    </Label>
+                    <Slider
+                      value={settings.sessionTimeout}
+                      onValueChange={(value) =>
+                        handleSettingChange("sessionTimeout", value)
+                      }
+                      max={120}
+                      min={15}
+                      step={15}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <Button variant="outline" className="w-full">
+                      <Key className="w-4 h-4 mr-2" />
+                      Alterar Senha
+                    </Button>
+                    <Button variant="outline" className="w-full">
+                      <User className="w-4 h-4 mr-2" />
+                      Gerenciar Perfil
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="w-5 h-5" />
+                    Privacidade de Dados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base">
+                        Compartilhamento de Dados
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Permitir análises anônimas para melhorias
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.dataSharing}
+                      onCheckedChange={(checked) =>
+                        handleSettingChange("dataSharing", checked)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base">Analytics</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Ajudar a melhorar o PlannerFin
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.analyticsTracking}
+                      onCheckedChange={(checked) =>
+                        handleSettingChange("analyticsTracking", checked)
+                      }
+                    />
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <Button variant="destructive" className="w-full">
+                      Baixar Meus Dados
+                    </Button>
+                    <Button variant="destructive" className="w-full">
+                      Excluir Conta
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Accessibility */}
+          <TabsContent value="accessibility" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Accessibility className="w-5 h-5" />
+                  Recursos de Acessibilidade
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">
+                          Suporte a Leitor de Tela
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Otimizações para leitores de tela
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.screenReader}
+                        onCheckedChange={(checked) =>
+                          handleSettingChange("screenReader", checked)
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">
+                          Navegação por Teclado
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Melhor suporte para navegação via teclado
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.keyboardNavigation}
+                        onCheckedChange={(checked) =>
+                          handleSettingChange("keyboardNavigation", checked)
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">Anúncios por Voz</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Anunciar ações importantes por voz
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.voiceAnnouncements}
+                        onCheckedChange={(checked) =>
+                          handleSettingChange("voiceAnnouncements", checked)
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">Botões Grandes</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Aumentar tamanho de botões e elementos interativos
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.largeButtons}
+                        onCheckedChange={(checked) =>
+                          handleSettingChange("largeButtons", checked)
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-6 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      Recursos Disponíveis
+                    </h4>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• Descrições alternativas em imagens</li>
+                      <li>• Estrutura semântica completa</li>
+                      <li>• Suporte a atalhos de teclado</li>
+                      <li>• Indicadores de foco visíveis</li>
+                      <li>• Contraste adequado em todos os elementos</li>
+                      <li>• Texto escalável sem perda de funcionalidade</li>
+                    </ul>
+                  </div>
                 </div>
-                <Switch />
-              </div>
-
-              <Button variant="outline" className="w-full">
-                Alterar Senha
-              </Button>
-
-              <Button variant="outline" className="w-full">
-                Gerenciar Dados
-              </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* General Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <SettingsIcon className="w-5 h-5" />
-                Configurações Gerais
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Idioma</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Português (Brasil)
-                  </p>
-                </div>
-                <Button variant="outline" size="sm">
-                  Alterar
-                </Button>
-              </div>
+          <TabsContent value="general" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="w-5 h-5" />
+                    Localização e Formato
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Idioma</Label>
+                    <Select
+                      value={settings.language}
+                      onValueChange={(value) =>
+                        handleSettingChange("language", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pt-BR">
+                          Português (Brasil)
+                        </SelectItem>
+                        <SelectItem value="en-US">English (US)</SelectItem>
+                        <SelectItem value="es-ES">Español</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Moeda</Label>
-                  <p className="text-sm text-muted-foreground">Real (BRL)</p>
-                </div>
-                <Button variant="outline" size="sm">
-                  Alterar
-                </Button>
-              </div>
+                  <div className="space-y-2">
+                    <Label>Moeda</Label>
+                    <Select
+                      value={settings.currency}
+                      onValueChange={(value) =>
+                        handleSettingChange("currency", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BRL">Real (R$)</SelectItem>
+                        <SelectItem value="USD">Dólar ($)</SelectItem>
+                        <SelectItem value="EUR">Euro (€)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Fuso Horário</Label>
-                  <p className="text-sm text-muted-foreground">
-                    América/São_Paulo
-                  </p>
-                </div>
-                <Button variant="outline" size="sm">
-                  Alterar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  <div className="space-y-2">
+                    <Label>Formato de Data</Label>
+                    <Select
+                      value={settings.dateFormat}
+                      onValueChange={(value) =>
+                        handleSettingChange("dateFormat", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DD/MM/YYYY">DD/MM/AAAA</SelectItem>
+                        <SelectItem value="MM/DD/YYYY">MM/DD/AAAA</SelectItem>
+                        <SelectItem value="YYYY-MM-DD">AAAA-MM-DD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-        {/* Accessibility Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="w-5 h-5" />
-              Acessibilidade
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="border-dashed border-2 border-muted-foreground/25 rounded-lg p-6 text-center">
-              <h4 className="font-semibold mb-2">Recursos de Acessibilidade</h4>
-              <p className="text-sm text-muted-foreground mb-4">
-                O PlannerFin foi desenvolvido com acessibilidade em mente.
-                Recursos disponíveis:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-                <ul className="space-y-1">
-                  <li>• Navegação via teclado</li>
-                  <li>• Suporte a leitores de tela</li>
-                  <li>• Alto contraste</li>
-                </ul>
-                <ul className="space-y-1">
-                  <li>• Ajuste de tamanho de fonte</li>
-                  <li>• Descrições alternativas</li>
-                  <li>• Foco visual aprimorado</li>
-                </ul>
-              </div>
+                  <div className="space-y-2">
+                    <Label>Formato de Números</Label>
+                    <Select
+                      value={settings.numberFormat}
+                      onValueChange={(value) =>
+                        handleSettingChange("numberFormat", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1.234,56">1.234,56</SelectItem>
+                        <SelectItem value="1,234.56">1,234.56</SelectItem>
+                        <SelectItem value="1 234,56">1 234,56</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Preview das Configurações</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4 p-4 bg-muted rounded-lg">
+                    <div>
+                      <Label className="text-sm text-muted-foreground">
+                        Data de Hoje
+                      </Label>
+                      <p className="font-medium">
+                        {settings.dateFormat === "DD/MM/YYYY" && "15/12/2024"}
+                        {settings.dateFormat === "MM/DD/YYYY" && "12/15/2024"}
+                        {settings.dateFormat === "YYYY-MM-DD" && "2024-12-15"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm text-muted-foreground">
+                        Valor de Exemplo
+                      </Label>
+                      <p className="font-medium">
+                        {settings.currency === "BRL" && "R$ "}
+                        {settings.currency === "USD" && "$ "}
+                        {settings.currency === "EUR" && "€ "}
+                        {settings.numberFormat === "1.234,56" && "1.234,56"}
+                        {settings.numberFormat === "1,234.56" && "1,234.56"}
+                        {settings.numberFormat === "1 234,56" && "1 234,56"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm text-muted-foreground">
+                        Tema Atual
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">
+                          {settings.theme === "light"
+                            ? "Claro"
+                            : settings.theme === "dark"
+                              ? "Escuro"
+                              : "Sistema"}
+                        </Badge>
+                        <Badge variant="outline">{settings.primaryColor}</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
