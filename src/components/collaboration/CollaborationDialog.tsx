@@ -11,8 +11,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Users, Plus, Search } from "lucide-react";
+import { Users, Plus, Search, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useUserData } from "@/contexts/UserDataContext";
 
 interface CollaborationDialogProps {
   trigger?: React.ReactNode;
@@ -21,10 +22,12 @@ interface CollaborationDialogProps {
 export default function CollaborationDialog({
   trigger,
 }: CollaborationDialogProps) {
+  const { joinBudgetByCode, findBudgetByCode } = useUserData();
   const [isOpen, setIsOpen] = useState(false);
   const [budgetCode, setBudgetCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleJoinBudget = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,27 +39,43 @@ export default function CollaborationDialog({
 
     setIsLoading(true);
     setError("");
+    setSuccess(false);
 
-    // Simulate API call to join budget
-    setTimeout(() => {
-      // In a real app, this would search for the budget by code
-      // For now, we'll simulate that the code doesn't exist
-      if (budgetCode.toUpperCase().startsWith("PF")) {
-        toast.error(
-          "Funcionalidade de colaboração será implementada em breve!",
-        );
-      } else {
-        setError("Código de planilha inválido");
+    try {
+      // First check if budget exists
+      const targetBudget = findBudgetByCode(budgetCode.toUpperCase());
+
+      if (!targetBudget) {
+        setError("Código de planilha não encontrado");
+        setIsLoading(false);
+        return;
       }
 
+      // Try to join the budget
+      const joined = await joinBudgetByCode(budgetCode.toUpperCase());
+
+      if (joined) {
+        setSuccess(true);
+        toast.success(
+          `Você agora tem acesso à planilha "${targetBudget.name}"!`,
+        );
+        setTimeout(() => {
+          resetForm();
+        }, 2000);
+      } else {
+        setError("Não foi possível entrar na planilha");
+      }
+    } catch (error) {
+      setError("Erro interno. Tente novamente.");
+    } finally {
       setIsLoading(false);
-      setBudgetCode("");
-    }, 1500);
+    }
   };
 
   const resetForm = () => {
     setBudgetCode("");
     setError("");
+    setSuccess(false);
     setIsOpen(false);
   };
 
@@ -89,6 +108,15 @@ export default function CollaborationDialog({
             </Alert>
           )}
 
+          {success && (
+            <Alert className="border-success text-success">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>
+                Sucesso! Você foi adicionado à planilha.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="budgetCode">Código da Planilha</Label>
             <Input
@@ -96,7 +124,7 @@ export default function CollaborationDialog({
               placeholder="Ex: PF123ABC"
               value={budgetCode}
               onChange={(e) => setBudgetCode(e.target.value.toUpperCase())}
-              disabled={isLoading}
+              disabled={isLoading || success}
             />
             <p className="text-xs text-muted-foreground">
               Peça o código para o proprietário da planilha
@@ -104,11 +132,20 @@ export default function CollaborationDialog({
           </div>
 
           <div className="flex gap-2">
-            <Button type="submit" disabled={isLoading} className="flex-1">
+            <Button
+              type="submit"
+              disabled={isLoading || success}
+              className="flex-1"
+            >
               {isLoading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin mr-2" />
                   Buscando...
+                </>
+              ) : success ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Sucesso!
                 </>
               ) : (
                 <>
@@ -118,7 +155,7 @@ export default function CollaborationDialog({
               )}
             </Button>
             <Button type="button" variant="outline" onClick={resetForm}>
-              Cancelar
+              {success ? "Fechar" : "Cancelar"}
             </Button>
           </div>
         </form>
