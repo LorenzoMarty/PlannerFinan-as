@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import BudgetTable from "@/components/budget/BudgetTable";
 import CategoryChart from "@/components/budget/CategoryChart";
