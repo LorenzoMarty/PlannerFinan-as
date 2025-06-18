@@ -152,12 +152,13 @@ export default function Collaboration() {
             <Badge variant="secondary">{currentUser.budgets.length}</Badge>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {currentUser.budgets.map((budget) => {
               const budgetEntries = entries.filter(
                 (entry) => entry.budgetId === budget.id,
               );
               const isActive = budget.id === activeBudget?.id;
+              const canDelete = currentUser.budgets.length > 1 && !isActive;
 
               return (
                 <Card
@@ -168,56 +169,112 @@ export default function Collaboration() {
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          {budget.name}
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base sm:text-lg flex items-center gap-2 flex-wrap">
+                          <span className="truncate">{budget.name}</span>
                           {isActive && (
                             <Badge variant="default" className="text-xs">
                               Ativa
                             </Badge>
                           )}
                         </CardTitle>
-                        <div className="flex items-center gap-2 mt-1">
-                          <code className="text-xs bg-muted px-1 rounded">
+                        <div className="flex items-center gap-2 mt-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                             {budget.code}
                           </code>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleCopyCode(budget.code)}
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 shrink-0"
                           >
                             <Copy className="w-3 h-3" />
                           </Button>
                         </div>
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleCopyCode(budget.code)}
+                          >
+                            <Share2 className="mr-2 h-4 w-4" />
+                            Compartilhar
+                          </DropdownMenuItem>
+                          {canDelete && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                  onSelect={(e) => e.preventDefault()}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Excluir Planilha
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja excluir a planilha "
+                                    {budget.name}"? Esta ação não pode ser
+                                    desfeita e todos os dados serão perdidos.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>
+                                    Cancelar
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleDeleteBudget(budget.id, budget.name)
+                                    }
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Lançamentos
-                        </span>
-                        <span className="font-medium">
-                          {budgetEntries.length}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Colaboradores
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          <span className="font-medium">
-                            {budget.collaborators.length + 1}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground block">
+                            Lançamentos
                           </span>
+                          <span className="font-medium">
+                            {budgetEntries.length}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block">
+                            Colaboradores
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            <span className="font-medium">
+                              {budget.collaborators.length + 1}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Criado em</span>
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">
+                          Criado em{" "}
+                        </span>
                         <span className="font-medium">
                           {new Date(budget.createdAt).toLocaleDateString(
                             "pt-BR",
@@ -225,7 +282,7 @@ export default function Collaboration() {
                         </span>
                       </div>
 
-                      <div className="pt-2 border-t">
+                      <div className="pt-2 border-t space-y-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -233,7 +290,8 @@ export default function Collaboration() {
                           onClick={() => handleCopyCode(budget.code)}
                         >
                           <Share2 className="w-3 h-3 mr-2" />
-                          Compartilhar
+                          <span className="hidden sm:inline">Compartilhar</span>
+                          <span className="sm:hidden">Copiar</span>
                         </Button>
                       </div>
                     </div>
