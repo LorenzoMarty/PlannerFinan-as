@@ -241,7 +241,11 @@ export default function Analytics() {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="currentColor"
+                        opacity={0.3}
+                      />
                       <XAxis
                         dataKey="name"
                         tick={{ fill: "currentColor" }}
