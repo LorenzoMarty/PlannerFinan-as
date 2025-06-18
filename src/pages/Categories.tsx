@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
+import { useUserData } from "@/contexts/UserDataContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,17 +36,6 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-interface Category {
-  id: string;
-  name: string;
-  type: "income" | "expense";
-  color: string;
-  icon: string;
-  transactionCount: number;
-  totalAmount: number;
-  description?: string;
-}
-
 const colorOptions = [
   { name: "Vermelho", value: "#ef4444", class: "bg-red-500" },
   { name: "Laranja", value: "#f97316", class: "bg-orange-500" },
@@ -57,71 +47,9 @@ const colorOptions = [
   { name: "Cinza", value: "#6b7280", class: "bg-gray-500" },
 ];
 
-const defaultCategories: Category[] = [
-  {
-    id: "1",
-    name: "Alimentação",
-    type: "expense",
-    color: "#ef4444",
-    icon: "🍽️",
-    transactionCount: 24,
-    totalAmount: 1250.5,
-    description: "Gastos com comida e restaurantes",
-  },
-  {
-    id: "2",
-    name: "Transporte",
-    type: "expense",
-    color: "#f97316",
-    icon: "🚗",
-    transactionCount: 18,
-    totalAmount: 850.0,
-    description: "Combustível, transporte público, etc.",
-  },
-  {
-    id: "3",
-    name: "Moradia",
-    type: "expense",
-    color: "#eab308",
-    icon: "🏠",
-    transactionCount: 8,
-    totalAmount: 2100.0,
-    description: "Aluguel, condomínio, IPTU",
-  },
-  {
-    id: "4",
-    name: "Salário",
-    type: "income",
-    color: "#22c55e",
-    icon: "💰",
-    transactionCount: 2,
-    totalAmount: 8500.0,
-    description: "Salário principal",
-  },
-  {
-    id: "5",
-    name: "Freelance",
-    type: "income",
-    color: "#3b82f6",
-    icon: "💼",
-    transactionCount: 5,
-    totalAmount: 2300.0,
-    description: "Trabalhos extras e consultorias",
-  },
-  {
-    id: "6",
-    name: "Lazer",
-    type: "expense",
-    color: "#8b5cf6",
-    icon: "🎮",
-    transactionCount: 12,
-    totalAmount: 480.0,
-    description: "Entretenimento e diversão",
-  },
-];
-
 export default function Categories() {
-  const [categories, setCategories] = useState<Category[]>(defaultCategories);
+  const { categories, entries, addCategory, updateCategory, deleteCategory } =
+    useUserData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -152,30 +80,26 @@ export default function Categories() {
       return;
     }
 
-    const categoryData: Category = {
-      id: editingCategory?.id || Date.now().toString(),
+    const categoryData = {
       name: formData.name,
       type: formData.type,
       color: formData.color,
       icon: formData.icon,
-      transactionCount: editingCategory?.transactionCount || 0,
-      totalAmount: editingCategory?.totalAmount || 0,
       description: formData.description,
     };
 
-    if (editingCategory) {
-      setCategories(
-        categories.map((cat) =>
-          cat.id === editingCategory.id ? categoryData : cat,
-        ),
-      );
-      toast.success("Categoria atualizada com sucesso!");
-    } else {
-      setCategories([...categories, categoryData]);
-      toast.success("Categoria criada com sucesso!");
+    try {
+      if (editingCategory) {
+        updateCategory(editingCategory.id, categoryData);
+        toast.success("Categoria atualizada com sucesso!");
+      } else {
+        addCategory(categoryData);
+        toast.success("Categoria criada com sucesso!");
+      }
+      resetForm();
+    } catch (error) {
+      toast.error("Erro ao salvar categoria");
     }
-
-    resetForm();
   };
 
   const resetForm = () => {
@@ -190,7 +114,7 @@ export default function Categories() {
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (category: Category) => {
+  const handleEdit = (category: any) => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
@@ -203,16 +127,12 @@ export default function Categories() {
   };
 
   const handleDelete = (id: string) => {
-    const category = categories.find((cat) => cat.id === id);
-    if (category && category.transactionCount > 0) {
-      toast.error(
-        `Não é possível excluir categoria com ${category.transactionCount} lançamentos`,
-      );
-      return;
+    try {
+      deleteCategory(id);
+      toast.success("Categoria excluída com sucesso!");
+    } catch (error) {
+      toast.error((error as Error).message);
     }
-
-    setCategories(categories.filter((cat) => cat.id !== id));
-    toast.success("Categoria excluída com sucesso!");
   };
 
   const formatCurrency = (amount: number) => {
@@ -220,6 +140,21 @@ export default function Categories() {
       style: "currency",
       currency: "BRL",
     }).format(amount);
+  };
+
+  // Calculate category usage stats
+  const getCategoryStats = (categoryName: string) => {
+    const categoryEntries = entries.filter(
+      (entry) => entry.category === categoryName,
+    );
+    const total = categoryEntries.reduce(
+      (sum, entry) => sum + Math.abs(entry.amount),
+      0,
+    );
+    return {
+      count: categoryEntries.length,
+      total,
+    };
   };
 
   const incomeCategories = filteredCategories.filter(
@@ -487,24 +422,27 @@ export default function Categories() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            Total
-                          </span>
-                          <span className="font-medium text-success">
-                            {formatCurrency(category.totalAmount)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            Lançamentos
-                          </span>
-                          <span className="font-medium">
-                            {category.transactionCount}
-                          </span>
-                        </div>
-                      </div>
+                      {(() => {
+                        const stats = getCategoryStats(category.name);
+                        return (
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                Total
+                              </span>
+                              <span className="font-medium text-success">
+                                {formatCurrency(stats.total)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                Lançamentos
+                              </span>
+                              <span className="font-medium">{stats.count}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 ))}
@@ -569,24 +507,27 @@ export default function Categories() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            Total
-                          </span>
-                          <span className="font-medium text-destructive">
-                            {formatCurrency(category.totalAmount)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            Lançamentos
-                          </span>
-                          <span className="font-medium">
-                            {category.transactionCount}
-                          </span>
-                        </div>
-                      </div>
+                      {(() => {
+                        const stats = getCategoryStats(category.name);
+                        return (
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                Total
+                              </span>
+                              <span className="font-medium text-destructive">
+                                {formatCurrency(stats.total)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">
+                                Lançamentos
+                              </span>
+                              <span className="font-medium">{stats.count}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 ))}
