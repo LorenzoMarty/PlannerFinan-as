@@ -140,17 +140,32 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   // Load user data on mount
   useEffect(() => {
-    const authUser = localStorage.getItem("plannerfinUser");
-    if (authUser) {
-      try {
-        const user = JSON.parse(authUser);
-        if (user.authenticated) {
-          loadUserProfile(user);
+    const initializeUser = () => {
+      const authUser = localStorage.getItem("plannerfinUser");
+      if (authUser) {
+        try {
+          const user = JSON.parse(authUser);
+          if (user.authenticated) {
+            loadUserProfile(user);
+          }
+        } catch (error) {
+          console.error("Error loading user:", error);
+          localStorage.removeItem("plannerfinUser");
         }
-      } catch (error) {
-        console.error("Error loading user:", error);
       }
-    }
+    };
+
+    initializeUser();
+
+    // Listen for storage changes (when user logs in from another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "plannerfinUser") {
+        initializeUser();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   // Save user data whenever it changes
