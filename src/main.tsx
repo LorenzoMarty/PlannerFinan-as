@@ -35,6 +35,14 @@ if (import.meta.env.DEV) {
       return true;
     }
 
+    // Filter other accessibility warnings from third-party components
+    if (
+      fullMessage.includes("VisuallyHidden") &&
+      fullMessage.includes("accessibility")
+    ) {
+      return true;
+    }
+
     // Filter Recharts component warnings
     const rechartsComponents = [
       "XAxis",
