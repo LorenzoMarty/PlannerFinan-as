@@ -6,15 +6,27 @@ import "./index.css";
 // Filter out Recharts defaultProps warnings
 const originalWarn = console.warn;
 console.warn = (...args) => {
-  if (
-    typeof args[0] === "string" &&
-    args[0].includes("Support for defaultProps will be removed") &&
-    (args[0].includes("XAxis") ||
-      args[0].includes("YAxis") ||
-      args[0].includes("CartesianGrid"))
-  ) {
+  // Check if any argument contains the defaultProps warning
+  const hasDefaultPropsWarning = args.some(
+    (arg) =>
+      typeof arg === "string" &&
+      arg.includes("Support for defaultProps will be removed"),
+  );
+
+  const hasRechartsComponent = args.some(
+    (arg) =>
+      typeof arg === "string" &&
+      (arg.includes("XAxis") ||
+        arg.includes("YAxis") ||
+        arg.includes("CartesianGrid") ||
+        arg.includes("Tooltip") ||
+        arg.includes("Legend")),
+  );
+
+  if (hasDefaultPropsWarning && hasRechartsComponent) {
     return;
   }
+
   originalWarn.apply(console, args);
 };
 
