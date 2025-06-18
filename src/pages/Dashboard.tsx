@@ -26,11 +26,22 @@ import {
 import { toast } from "sonner";
 
 export default function Dashboard() {
-  const [selectedMonth, setSelectedMonth] = useState("2024-01");
+  // Initialize with current month
+  const currentDate = new Date();
+  const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const { currentUser, activeBudget, entries, createBudget, switchBudget } =
     useUserData();
 
   const [selectedBudget, setSelectedBudget] = useState(activeBudget?.id || "");
+    createBudget,
+    switchBudget,
+  } = useUserData();
+
+  const [selectedBudget, setSelectedBudget] = useState(
+    activeBudget?.id || "",
+  );
 
   const budgets = currentUser?.budgets || [];
   const currentBudget = activeBudget;
@@ -134,11 +145,7 @@ export default function Dashboard() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                variant="outline"
-                onClick={handleCreateBudget}
-                className="shrink-0"
-              >
+              <Button variant="outline" onClick={handleCreateBudget} className="shrink-0">
                 <Plus className="w-4 h-4" />
                 <span className="sr-only">Nova planilha</span>
               </Button>
@@ -152,10 +159,11 @@ export default function Dashboard() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2024-01">Janeiro 2024</SelectItem>
-                <SelectItem value="2023-12">Dezembro 2023</SelectItem>
-                <SelectItem value="2023-11">Novembro 2023</SelectItem>
-                <SelectItem value="2023-10">Outubro 2023</SelectItem>
+                {periodOptions.map((period) => (
+                  <SelectItem key={period.value} value={period.value}>
+                    {period.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -167,9 +175,7 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-lg truncate">
-                    {currentBudget.name}
-                  </h3>
+                  <h3 className="font-semibold text-lg truncate">{currentBudget.name}</h3>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <Badge variant="outline" className="text-xs">
                       <span className="hidden sm:inline">Código: </span>
@@ -178,12 +184,8 @@ export default function Dashboard() {
                     {currentBudget.collaborators.length > 0 && (
                       <Badge variant="secondary" className="text-xs">
                         <Users className="w-3 h-3 mr-1" />
-                        <span className="hidden sm:inline">
-                          {currentBudget.collaborators.length} colaboradores
-                        </span>
-                        <span className="sm:hidden">
-                          {currentBudget.collaborators.length}
-                        </span>
+                        <span className="hidden sm:inline">{currentBudget.collaborators.length} colaboradores</span>
+                        <span className="sm:hidden">{currentBudget.collaborators.length}</span>
                       </Badge>
                     )}
                   </div>
@@ -212,37 +214,12 @@ export default function Dashboard() {
                   <TrendingUp className="w-5 h-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Saldo Atual</p>
-                  <p
-                    className={`font-semibold ${(() => {
-                      const totalIncome = entries
-                        .filter((e) => e.type === "income")
-                        .reduce((sum, e) => sum + e.amount, 0);
-                      const totalExpenses = Math.abs(
-                        entries
-                          .filter((e) => e.type === "expense")
-                          .reduce((sum, e) => sum + e.amount, 0),
-                      );
-                      return totalIncome - totalExpenses >= 0
-                        ? "text-success"
-                        : "text-destructive";
-                    })()}`}
-                  >
-                    {(() => {
-                      const totalIncome = entries
-                        .filter((e) => e.type === "income")
-                        .reduce((sum, e) => sum + e.amount, 0);
-                      const totalExpenses = Math.abs(
-                        entries
-                          .filter((e) => e.type === "expense")
-                          .reduce((sum, e) => sum + e.amount, 0),
-                      );
-                      const balance = totalIncome - totalExpenses;
-                      return new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      }).format(balance);
-                    })()}
+                  <p className="text-sm text-muted-foreground">Saldo do Período</p>
+                  <p className={`font-semibold ${filteredBalance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(filteredBalance)}
                   </p>
                 </div>
               </div>
@@ -256,8 +233,8 @@ export default function Dashboard() {
                   <Calendar className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Lançamentos</p>
-                  <p className="font-semibold">{entries.length}</p>
+                  <p className="text-sm text-muted-foreground">Lançamentos do Período</p>
+                  <p className="font-semibold">{filteredEntries.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -312,24 +289,16 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {(() => {
-                  const totalIncome = entries
-                    .filter((e) => e.type === "income")
-                    .reduce((sum, e) => sum + e.amount, 0);
-                  const totalExpenses = Math.abs(
-                    entries
-                      .filter((e) => e.type === "expense")
-                      .reduce((sum, e) => sum + e.amount, 0),
-                  );
+                  const totalIncome = entries.filter(e => e.type === "income").reduce((sum, e) => sum + e.amount, 0);
+                  const totalExpenses = Math.abs(entries.filter(e => e.type === "expense").reduce((sum, e) => sum + e.amount, 0));
                   const balance = totalIncome - totalExpenses;
-                  const savingsRate =
-                    totalIncome > 0 ? (balance / totalIncome) * 100 : 0;
+                  const savingsRate = totalIncome > 0 ? ((balance / totalIncome) * 100) : 0;
 
                   if (entries.length === 0) {
                     return (
                       <div className="text-center py-4">
                         <p className="text-muted-foreground text-sm">
-                          Adicione seus primeiros lançamentos para ver o resumo
-                          financeiro
+                          Adicione seus primeiros lançamentos para ver o resumo financeiro
                         </p>
                       </div>
                     );
@@ -338,53 +307,31 @@ export default function Dashboard() {
                   return (
                     <>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">
-                          Total de Receitas
-                        </span>
-                        <span className="font-medium text-success">
-                          {new Intl.NumberFormat("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          }).format(totalIncome)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">
-                          Total de Despesas
-                        </span>
-                        <span className="font-medium text-destructive">
-                          {new Intl.NumberFormat("pt-BR", {
+                  <p className="text-sm text-muted-foreground">Despesas</p>
+                  <p className="font-semibold text-destructive">
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(filteredExpenses)}
+                  </p>
                             style: "currency",
                             currency: "BRL",
                           }).format(totalExpenses)}
                         </span>
                       </div>
 
-                      <div className="border-t pt-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">
-                            Saldo Final
-                          </span>
-                          <span
-                            className={`font-bold ${balance >= 0 ? "text-success" : "text-destructive"}`}
-                          >
-                            {new Intl.NumberFormat("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            }).format(balance)}
-                          </span>
-                        </div>
-                      </div>
+                  <p className="text-sm text-muted-foreground">Receitas</p>
+                  <p className="font-semibold text-success">
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(filteredIncome)}
+                  </p>
 
                       <div className="mt-4">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-xs text-muted-foreground">
-                            Taxa de Economia
-                          </span>
-                          <span className="text-xs font-medium">
-                            {savingsRate.toFixed(1)}%
-                          </span>
+                          <span className="text-xs text-muted-foreground">Taxa de Economia</span>
+                          <span className="text-xs font-medium">{savingsRate.toFixed(1)}%</span>
                         </div>
                         <div className="w-full bg-muted rounded-full h-2">
                           <div
@@ -394,12 +341,12 @@ export default function Dashboard() {
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           {savingsRate >= 20
-                            ? "Excelente controle!"
+                            ? 'Excelente controle!'
                             : savingsRate >= 10
-                              ? "Bom desempenho!"
-                              : savingsRate > 0
-                                ? "Continue assim!"
-                                : "Atenção aos gastos"}
+                            ? 'Bom desempenho!'
+                            : savingsRate > 0
+                            ? 'Continue assim!'
+                            : 'Atenção aos gastos'}
                         </p>
                       </div>
                     </>
