@@ -91,5 +91,14 @@ if (import.meta.env.DEV) {
     }
     originalError.apply(console, args);
   };
+
+  // Additional override for console.log that might be showing warnings
+  const originalLog = console.log;
+  console.log = (...args) => {
+    if (shouldFilterWarning(...args)) {
+      return;
+    }
+    originalLog.apply(console, args);
+  };
 }
 createRoot(document.getElementById("root")!).render(<App />);
