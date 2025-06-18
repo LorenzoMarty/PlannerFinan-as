@@ -28,17 +28,27 @@ if (import.meta.env.DEV) {
 
     // Filter DialogTitle accessibility warnings from third-party libraries
     if (
-      fullMessage.includes("DialogContent") &&
+      (fullMessage.includes("DialogContent") ||
+        fullMessage.includes("AlertDialogContent")) &&
       fullMessage.includes("requires a") &&
-      fullMessage.includes("DialogTitle")
+      (fullMessage.includes("DialogTitle") ||
+        fullMessage.includes("AlertDialogTitle"))
     ) {
       return true;
     }
 
-    // Filter other accessibility warnings from third-party components
+    // Filter accessibility warnings from Radix UI components
     if (
       fullMessage.includes("VisuallyHidden") &&
       fullMessage.includes("accessibility")
+    ) {
+      return true;
+    }
+
+    // Filter any Radix UI accessibility warnings
+    if (
+      fullMessage.includes("accessible for screen reader users") ||
+      fullMessage.includes("radix-ui.com/primitives/docs")
     ) {
       return true;
     }
