@@ -32,12 +32,18 @@ import {
   Crown,
   Trash2,
   MoreVertical,
+  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Collaboration() {
-  const { currentUser, activeBudget, entries, deleteBudget } = useUserData();
-  const [deletingBudget, setDeletingBudget] = useState<string | null>(null);
+  const {
+    currentUser,
+    activeBudget,
+    entries,
+    deleteBudget,
+    leaveBudgetAsCollaborator,
+  } = useUserData();
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -48,11 +54,19 @@ export default function Collaboration() {
     const success = deleteBudget(budgetId);
     if (success) {
       toast.success(`Planilha "${budgetName}" excluída com sucesso!`);
-      setDeletingBudget(null);
     } else {
       toast.error(
         "Não é possível excluir esta planilha. Deve haver pelo menos uma planilha ou não é possível excluir a planilha ativa.",
       );
+    }
+  };
+
+  const handleLeaveBudget = (budgetId: string, budgetName: string) => {
+    const success = leaveBudgetAsCollaborator(budgetId);
+    if (success) {
+      toast.success(`Você saiu da planilha "${budgetName}" com sucesso!`);
+    } else {
+      toast.error("Não foi possível sair desta planilha.");
     }
   };
 
