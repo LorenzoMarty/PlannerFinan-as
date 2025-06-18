@@ -4,7 +4,7 @@ import BudgetTable from "@/components/budget/BudgetTable";
 import CategoryChart from "@/components/budget/CategoryChart";
 import CollaborationDialog from "@/components/collaboration/CollaborationDialog";
 import { useUserData } from "@/contexts/UserDataContext";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -13,22 +13,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Share2,
-  Download,
-  Calendar,
   TrendingUp,
-  Users,
-  Copy,
+  TrendingDown,
+  DollarSign,
   Plus,
+  Share2,
+  Copy,
+  Download,
+  Users,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Dashboard() {
   // Initialize with current month
   const currentDate = new Date();
-  const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const { currentUser, activeBudget, entries, createBudget, switchBudget } =
@@ -38,6 +41,49 @@ export default function Dashboard() {
 
   const budgets = currentUser?.budgets || [];
   const currentBudget = activeBudget;
+
+  // Generate period options (last 12 months + current)
+  const generatePeriodOptions = () => {
+    const options = [];
+    const now = new Date();
+
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const label = date.toLocaleDateString("pt-BR", {
+        month: "long",
+        year: "numeric",
+      });
+      options.push({
+        value,
+        label: label.charAt(0).toUpperCase() + label.slice(1),
+      });
+    }
+
+    return options;
+  };
+
+  const periodOptions = generatePeriodOptions();
+
+  // Filter entries by selected month
+  const filteredEntries = entries.filter((entry) => {
+    const entryDate = new Date(entry.date);
+    const entryMonth = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, "0")}`;
+    return entryMonth === selectedMonth;
+  });
+
+  // Calculate filtered totals
+  const filteredIncome = filteredEntries
+    .filter((e) => e.type === "income")
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const filteredExpenses = Math.abs(
+    filteredEntries
+      .filter((e) => e.type === "expense")
+      .reduce((sum, e) => sum + e.amount, 0),
+  );
+
+  const filteredBalance = filteredIncome - filteredExpenses;
 
   const handleBudgetChange = (budgetId: string) => {
     setSelectedBudget(budgetId);
@@ -63,33 +109,60 @@ export default function Dashboard() {
   };
 
   const handleExportData = () => {
-    if (entries.length === 0) {
-      toast.error("Nenhum dado para exportar");
+    if (filteredEntries.length === 0) {
+      toast.error("Nenhum dado para exportar no período selecionado");
       return;
     }
 
-    const csvData = [
-      ["Data", "Descrição", "Categoria", "Valor", "Tipo"],
-      ...entries.map((entry) => [
-        entry.date,
-        entry.description,
-        entry.category,
-        entry.amount.toString(),
-        entry.type === "income" ? "Receita" : "Despesa",
-      ]),
-    ];
+    const selectedPeriodName =
+      periodOptions.find((p) => p.value === selectedMonth)?.label ||
+      selectedMonth;
 
-    const csvContent = csvData.map((row) => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
+    const exportData = {
+      planilha: currentBudget?.name,
+      periodo: selectedPeriodName,
+      exportadoEm: new Date().toISOString(),
+      resumo: {
+        receitas: filteredIncome,
+        despesas: filteredExpenses,
+        saldo: filteredBalance,
+        totalLancamentos: filteredEntries.length,
+      },
+      lancamentos: filteredEntries.map((entry) => ({
+        data: entry.date,
+        descricao: entry.description,
+        categoria: entry.category,
+        tipo: entry.type === "income" ? "Receita" : "Despesa",
+        valor: entry.amount,
+      })),
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `plannerfin-${currentBudget?.name || "dados"}-${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `plannerfin-${selectedPeriodName.toLowerCase().replace(/\s+/g, "-")}.json`;
     link.click();
     URL.revokeObjectURL(url);
 
     toast.success("Dados exportados com sucesso!");
   };
+
+  if (!currentUser) {
+    return (
+      <AppLayout>
+        <div className="p-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Dashboard Financeiro</h1>
+            <p className="text-muted-foreground">
+              Faça login para acessar seu dashboard
+            </p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -138,7 +211,11 @@ export default function Dashboard() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" onClick={handleCreateBudget} className="shrink-0">
+              <Button
+                variant="outline"
+                onClick={handleCreateBudget}
+                className="shrink-0"
+              >
                 <Plus className="w-4 h-4" />
                 <span className="sr-only">Nova planilha</span>
               </Button>
@@ -168,7 +245,9 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-lg truncate">{currentBudget.name}</h3>
+                  <h3 className="font-semibold text-lg truncate">
+                    {currentBudget.name}
+                  </h3>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <Badge variant="outline" className="text-xs">
                       <span className="hidden sm:inline">Código: </span>
@@ -177,8 +256,12 @@ export default function Dashboard() {
                     {currentBudget.collaborators.length > 0 && (
                       <Badge variant="secondary" className="text-xs">
                         <Users className="w-3 h-3 mr-1" />
-                        <span className="hidden sm:inline">{currentBudget.collaborators.length} colaboradores</span>
-                        <span className="sm:hidden">{currentBudget.collaborators.length}</span>
+                        <span className="hidden sm:inline">
+                          {currentBudget.collaborators.length} colaboradores
+                        </span>
+                        <span className="sm:hidden">
+                          {currentBudget.collaborators.length}
+                        </span>
                       </Badge>
                     )}
                   </div>
@@ -199,7 +282,7 @@ export default function Dashboard() {
         )}
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -207,8 +290,50 @@ export default function Dashboard() {
                   <TrendingUp className="w-5 h-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Saldo do Período</p>
-                  <p className={`font-semibold ${filteredBalance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                  <p className="text-sm text-muted-foreground">Receitas</p>
+                  <p className="font-semibold text-success">
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(filteredIncome)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center">
+                  <TrendingDown className="w-5 h-5 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Despesas</p>
+                  <p className="font-semibold text-destructive">
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(filteredExpenses)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Saldo do Período
+                  </p>
+                  <p
+                    className={`font-semibold ${filteredBalance >= 0 ? "text-success" : "text-destructive"}`}
+                  >
                     {new Intl.NumberFormat("pt-BR", {
                       style: "currency",
                       currency: "BRL",
@@ -226,7 +351,9 @@ export default function Dashboard() {
                   <Calendar className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Lançamentos do Período</p>
+                  <p className="text-sm text-muted-foreground">
+                    Lançamentos do Período
+                  </p>
                   <p className="font-semibold">{filteredEntries.length}</p>
                 </div>
               </div>
@@ -266,87 +393,11 @@ export default function Dashboard() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Budget Table - Takes 2 columns on xl screens */}
-          <div className="xl:col-span-2 space-y-6">
+          <div className="xl:col-span-2">
             <BudgetTable />
           </div>
-
-          {/* Chart and Additional Info */}
-          <div className="space-y-6">
+          <div>
             <CategoryChart />
-
-            {/* Financial Summary Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Resumo Financeiro</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {(() => {
-                  const totalIncome = entries.filter(e => e.type === "income").reduce((sum, e) => sum + e.amount, 0);
-                  const totalExpenses = Math.abs(entries.filter(e => e.type === "expense").reduce((sum, e) => sum + e.amount, 0));
-                  const balance = totalIncome - totalExpenses;
-                  const savingsRate = totalIncome > 0 ? ((balance / totalIncome) * 100) : 0;
-
-                  if (entries.length === 0) {
-                    return (
-                      <div className="text-center py-4">
-                        <p className="text-muted-foreground text-sm">
-                          Adicione seus primeiros lançamentos para ver o resumo financeiro
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <>
-                      <div className="flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground">Despesas</p>
-                  <p className="font-semibold text-destructive">
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(filteredExpenses)}
-                  </p>
-                            style: "currency",
-                            currency: "BRL",
-                          }).format(totalExpenses)}
-                        </span>
-                      </div>
-
-                  <p className="text-sm text-muted-foreground">Receitas</p>
-                  <p className="font-semibold text-success">
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(filteredIncome)}
-                  </p>
-
-                      <div className="mt-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-xs text-muted-foreground">Taxa de Economia</span>
-                          <span className="text-xs font-medium">{savingsRate.toFixed(1)}%</span>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${Math.min(savingsRate, 100)}%` }}
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {savingsRate >= 20
-                            ? 'Excelente controle!'
-                            : savingsRate >= 10
-                            ? 'Bom desempenho!'
-                            : savingsRate > 0
-                            ? 'Continue assim!'
-                            : 'Atenção aos gastos'}
-                        </p>
-                      </div>
-                    </>
-                  );
-                })()}
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
