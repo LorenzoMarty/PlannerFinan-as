@@ -681,7 +681,7 @@ export default function Settings() {
 
           {/* General Settings */}
           <TabsContent value="general" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -767,58 +767,186 @@ export default function Settings() {
                       </SelectContent>
                     </Select>
                   </div>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Preview das Configurações</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4 p-4 bg-muted rounded-lg">
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        Data de Hoje
-                      </Label>
-                      <p className="font-medium">
-                        {settings.dateFormat === "DD/MM/YYYY" && "15/12/2024"}
-                        {settings.dateFormat === "MM/DD/YYYY" && "12/15/2024"}
-                        {settings.dateFormat === "YYYY-MM-DD" && "2024-12-15"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        Valor de Exemplo
-                      </Label>
-                      <p className="font-medium">
-                        {settings.currency === "BRL" && "R$ "}
-                        {settings.currency === "USD" && "$ "}
-                        {settings.currency === "EUR" && "€ "}
-                        {settings.numberFormat === "1.234,56" && "1.234,56"}
-                        {settings.numberFormat === "1,234.56" && "1,234.56"}
-                        {settings.numberFormat === "1 234,56" && "1 234,56"}
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm text-muted-foreground">
-                        Tema Atual
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">
-                          {settings.theme === "light"
-                            ? "Claro"
-                            : settings.theme === "dark"
-                              ? "Escuro"
-                              : "Sistema"}
-                        </Badge>
-                        <Badge variant="outline">{settings.primaryColor}</Badge>
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label>Fuso Horário</Label>
+                    <Select
+                      value={settings.timezone}
+                      onValueChange={(value) =>
+                        handleSettingChange("timezone", value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="America/Sao_Paulo">
+                          São Paulo (GMT-3)
+                        </SelectItem>
+                        <SelectItem value="America/New_York">
+                          Nova York (GMT-5)
+                        </SelectItem>
+                        <SelectItem value="Europe/London">
+                          Londres (GMT+0)
+                        </SelectItem>
+                        <SelectItem value="Asia/Tokyo">
+                          Tóquio (GMT+9)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Preview das Configurações</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 p-4 bg-muted rounded-lg">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm text-muted-foreground">
+                            Data de Hoje
+                          </Label>
+                          <p className="font-medium">
+                            {settings.dateFormat === "DD/MM/YYYY" &&
+                              "15/12/2024"}
+                            {settings.dateFormat === "MM/DD/YYYY" &&
+                              "12/15/2024"}
+                            {settings.dateFormat === "YYYY-MM-DD" &&
+                              "2024-12-15"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm text-muted-foreground">
+                            Valor de Exemplo
+                          </Label>
+                          <p className="font-medium">
+                            {settings.currency === "BRL" && "R$ "}
+                            {settings.currency === "USD" && "$ "}
+                            {settings.currency === "EUR" && "€ "}
+                            {settings.numberFormat === "1.234,56" && "1.234,56"}
+                            {settings.numberFormat === "1,234.56" && "1,234.56"}
+                            {settings.numberFormat === "1 234,56" && "1 234,56"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm text-muted-foreground">
+                            Tema Atual
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">
+                              {settings.theme === "light"
+                                ? "Claro"
+                                : settings.theme === "dark"
+                                  ? "Escuro"
+                                  : "Sistema"}
+                            </Badge>
+                            <Badge variant="outline" className="capitalize">
+                              {settings.primaryColor}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-sm text-muted-foreground">
+                            Idioma/Região
+                          </Label>
+                          <p className="font-medium">
+                            {settings.language === "pt-BR" &&
+                              "Português (Brasil)"}
+                            {settings.language === "en-US" && "English (US)"}
+                            {settings.language === "es-ES" && "Español"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t">
+                        <Label className="text-sm text-muted-foreground">
+                          Horário Local
+                        </Label>
+                        <p className="font-medium">
+                          {new Date().toLocaleString("pt-BR", {
+                            timeZone: settings.timezone,
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-5 h-5" />
+                      Configurações Avançadas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">Backup Automático</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Fazer backup dos dados automaticamente
+                        </p>
+                      </div>
+                      <Switch
+                        checked={true}
+                        onCheckedChange={() =>
+                          toast.success("Backup automático configurado!")
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">
+                          Sincronização em Nuvem
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Sincronizar dados entre dispositivos
+                        </p>
+                      </div>
+                      <Switch
+                        checked={false}
+                        onCheckedChange={() =>
+                          toast.info("Funcionalidade em desenvolvimento")
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base">
+                          Compactação de Dados
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Reduzir espaço de armazenamento
+                        </p>
+                      </div>
+                      <Switch
+                        checked={true}
+                        onCheckedChange={() =>
+                          toast.success("Compactação ativada!")
+                        }
+                      />
+                    </div>
+
+                    <div className="pt-4 border-t">
+                      <Button variant="outline" className="w-full">
+                        <Download className="w-4 h-4 mr-2" />
+                        Exportar Todas as Configurações
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
