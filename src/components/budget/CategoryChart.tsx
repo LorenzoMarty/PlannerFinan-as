@@ -116,15 +116,27 @@ export default function CategoryChart({ filteredEntries }: CategoryChartProps) {
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[250px] sm:h-[300px] text-muted-foreground">
-            <div className="text-center space-y-2">
-              <p className="text-sm sm:text-base">
-                Nenhuma despesa registrada ainda
-              </p>
-              <p className="text-xs text-muted-foreground/70">
-                Adicione lançamentos para visualizar o gráfico
-              </p>
+        <CardContent className="p-3 sm:p-6">
+          <div className="flex flex-col items-center justify-center h-[250px] sm:h-[300px] text-muted-foreground">
+            <div className="text-center space-y-3 max-w-sm">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full bg-muted/50 flex items-center justify-center">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-dashed border-muted-foreground/30"></div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm sm:text-base font-medium">
+                  Nenhuma despesa registrada
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground/70 leading-relaxed">
+                  Adicione lançamentos de despesas para visualizar o gráfico de
+                  categorias
+                </p>
+              </div>
+              <div className="pt-2">
+                <p className="text-xs text-muted-foreground/50">
+                  💡 Dica: Use a aba "Dashboard" para adicionar novos
+                  lançamentos
+                </p>
+              </div>
             </div>
           </div>
         </CardContent>
