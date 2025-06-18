@@ -242,8 +242,17 @@ export default function Analytics() {
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={monthlyData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fill: "currentColor" }}
+                        tickLine={{ stroke: "currentColor" }}
+                        axisLine={{ stroke: "currentColor" }}
+                      />
+                      <YAxis
+                        tick={{ fill: "currentColor" }}
+                        tickLine={{ stroke: "currentColor" }}
+                        axisLine={{ stroke: "currentColor" }}
+                      />
                       <Tooltip content={<CustomTooltip />} />
                       <Legend />
                       <Bar dataKey="receitas" fill="#22c55e" name="Receitas" />
@@ -265,8 +274,17 @@ export default function Analytics() {
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={monthlyData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fill: "currentColor" }}
+                        tickLine={{ stroke: "currentColor" }}
+                        axisLine={{ stroke: "currentColor" }}
+                      />
+                      <YAxis
+                        tick={{ fill: "currentColor" }}
+                        tickLine={{ stroke: "currentColor" }}
+                        axisLine={{ stroke: "currentColor" }}
+                      />
                       <Tooltip content={<CustomTooltip />} />
                       <Area
                         type="monotone"
@@ -339,8 +357,17 @@ export default function Analytics() {
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={weeklyTrendData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="day" />
-                      <YAxis />
+                      <XAxis
+                        dataKey="day"
+                        tick={{ fill: "currentColor" }}
+                        tickLine={{ stroke: "currentColor" }}
+                        axisLine={{ stroke: "currentColor" }}
+                      />
+                      <YAxis
+                        tick={{ fill: "currentColor" }}
+                        tickLine={{ stroke: "currentColor" }}
+                        axisLine={{ stroke: "currentColor" }}
+                      />
                       <Tooltip content={<CustomTooltip />} />
                       <Line
                         type="monotone"
@@ -540,8 +567,17 @@ export default function Analytics() {
                 <ResponsiveContainer width="100%" height={400}>
                   <BarChart data={comparisonData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="periodo" />
-                    <YAxis />
+                    <XAxis
+                      dataKey="periodo"
+                      tick={{ fill: "currentColor" }}
+                      tickLine={{ stroke: "currentColor" }}
+                      axisLine={{ stroke: "currentColor" }}
+                    />
+                    <YAxis
+                      tick={{ fill: "currentColor" }}
+                      tickLine={{ stroke: "currentColor" }}
+                      axisLine={{ stroke: "currentColor" }}
+                    />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend />
                     <Bar dataKey="atual" fill="#3b82f6" name="Período Atual" />
