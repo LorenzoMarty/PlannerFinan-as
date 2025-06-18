@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,7 @@ import { toast } from "sonner";
 
 export default function Collaboration() {
   const { currentUser, activeBudget, entries, deleteBudget } = useUserData();
-  const [deletingBudget, setDeletingBudget] = React.useState<string | null>(
-    null,
-  );
+  const [deletingBudget, setDeletingBudget] = useState<string | null>(null);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
