@@ -6,17 +6,29 @@ const demoUsers = [
   {
     email: "demo@plannerfin.com",
     password: "123456",
-    name: "Usuário Demo",
+    name: "Maria Santos",
+    bio: "Desenvolvedora Full Stack apaixonada por tecnologia e finanças pessoais",
+    phone: "(11) 99876-5432",
+    location: "São Paulo, SP",
+    avatar: "",
   },
   {
     email: "admin@plannerfin.com",
     password: "admin123",
-    name: "Administrador",
+    name: "Carlos Admin",
+    bio: "Administrador do sistema PlannerFin",
+    phone: "(21) 98765-4321",
+    location: "Rio de Janeiro, RJ",
+    avatar: "",
   },
   {
     email: "user@exemplo.com",
     password: "senha123",
     name: "João Silva",
+    bio: "Analista de sistemas em transição para Product Manager",
+    phone: "(11) 91234-5678",
+    location: "Campinas, SP",
+    avatar: "",
   },
 ];
 
@@ -31,8 +43,26 @@ export default function Login() {
     );
 
     const userData = user
-      ? { email: user.email, name: user.name }
-      : { email, name: email.split("@")[0] };
+      ? {
+          email: user.email,
+          name: user.name,
+          bio: user.bio,
+          phone: user.phone,
+          location: user.location,
+          avatar: user.avatar,
+          joinedAt: new Date(2024, 0, 15).toISOString(), // January 15, 2024
+          lastLogin: new Date().toISOString(),
+        }
+      : {
+          email,
+          name: email.split("@")[0],
+          bio: "",
+          phone: "",
+          location: "",
+          avatar: "",
+          joinedAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+        };
 
     // Store user info in localStorage
     localStorage.setItem(
