@@ -3,31 +3,44 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Filter out Recharts defaultProps warnings
+// Completely suppress Recharts defaultProps warnings
 const originalWarn = console.warn;
+const originalError = console.error;
+
 console.warn = (...args) => {
-  // Check if any argument contains the defaultProps warning
-  const hasDefaultPropsWarning = args.some(
-    (arg) =>
-      typeof arg === "string" &&
-      arg.includes("Support for defaultProps will be removed"),
-  );
+  // Convert all arguments to strings for checking
+  const message = args.map((arg) => String(arg)).join(" ");
 
-  const hasRechartsComponent = args.some(
-    (arg) =>
-      typeof arg === "string" &&
-      (arg.includes("XAxis") ||
-        arg.includes("YAxis") ||
-        arg.includes("CartesianGrid") ||
-        arg.includes("Tooltip") ||
-        arg.includes("Legend")),
-  );
+  // Filter out defaultProps warnings
+  if (message.includes("Support for defaultProps will be removed")) {
+    return;
+  }
 
-  if (hasDefaultPropsWarning && hasRechartsComponent) {
+  // Filter out any Recharts-related warnings
+  if (
+    message.includes("XAxis") ||
+    message.includes("YAxis") ||
+    message.includes("CartesianGrid") ||
+    message.includes("Tooltip") ||
+    message.includes("Legend") ||
+    message.includes("recharts")
+  ) {
     return;
   }
 
   originalWarn.apply(console, args);
+};
+
+console.error = (...args) => {
+  // Convert all arguments to strings for checking
+  const message = args.map((arg) => String(arg)).join(" ");
+
+  // Filter out defaultProps errors
+  if (message.includes("Support for defaultProps will be removed")) {
+    return;
+  }
+
+  originalError.apply(console, args);
 };
 
 createRoot(document.getElementById("root")!).render(<App />);
