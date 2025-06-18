@@ -200,8 +200,38 @@ export default function Dashboard() {
                   <TrendingUp className="w-5 h-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Este Mês</p>
-                  <p className="font-semibold">+15.2%</p>
+                  <p className="text-sm text-muted-foreground">Saldo Atual</p>
+                  <p
+                    className={`font-semibold ${(() => {
+                      const totalIncome = entries
+                        .filter((e) => e.type === "income")
+                        .reduce((sum, e) => sum + e.amount, 0);
+                      const totalExpenses = Math.abs(
+                        entries
+                          .filter((e) => e.type === "expense")
+                          .reduce((sum, e) => sum + e.amount, 0),
+                      );
+                      return totalIncome - totalExpenses >= 0
+                        ? "text-success"
+                        : "text-destructive";
+                    })()}`}
+                  >
+                    {(() => {
+                      const totalIncome = entries
+                        .filter((e) => e.type === "income")
+                        .reduce((sum, e) => sum + e.amount, 0);
+                      const totalExpenses = Math.abs(
+                        entries
+                          .filter((e) => e.type === "expense")
+                          .reduce((sum, e) => sum + e.amount, 0),
+                      );
+                      const balance = totalIncome - totalExpenses;
+                      return new Intl.NumberFormat("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      }).format(balance);
+                    })()}
+                  </p>
                 </div>
               </div>
             </CardContent>
