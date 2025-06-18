@@ -30,8 +30,4 @@ console.warn = (...args) => {
   originalWarn.apply(console, args);
 };
 
-createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+createRoot(document.getElementById("root")!).render(<App />);
