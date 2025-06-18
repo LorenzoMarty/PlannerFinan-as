@@ -269,12 +269,12 @@ export default function Collaboration() {
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <strong>Nota:</strong> A funcionalidade de colaboração em tempo
-                real está em desenvolvimento. Por enquanto, cada usuário tem
-                seus próprios dados isolados, mas a interface está pronta para
-                quando implementarmos a sincronização entre usuários.
+            <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <p className="text-sm">
+                <strong>Colaboração Ativa:</strong> Agora você pode compartilhar
+                e colaborar em planilhas em tempo real! Use os códigos de
+                planilha para convidar colaboradores e trabalhar juntos no
+                controle financeiro.
               </p>
             </div>
           </CardContent>
