@@ -40,51 +40,155 @@ import {
   Activity,
 } from "lucide-react";
 import { toast } from "sonner";
-
-// Mock data for charts
-const monthlyData = [
-  { name: "Jan", receitas: 8500, despesas: 6200, saldo: 2300 },
-  { name: "Fev", receitas: 8800, despesas: 5900, saldo: 2900 },
-  { name: "Mar", receitas: 9200, despesas: 6800, saldo: 2400 },
-  { name: "Abr", receitas: 8600, despesas: 7100, saldo: 1500 },
-  { name: "Mai", receitas: 9500, despesas: 6500, saldo: 3000 },
-  { name: "Jun", receitas: 8900, despesas: 6300, saldo: 2600 },
-];
-
-const categoryExpensesData = [
-  { name: "Alimentação", value: 1850, color: "#ef4444" },
-  { name: "Transporte", value: 920, color: "#f97316" },
-  { name: "Moradia", value: 2100, color: "#eab308" },
-  { name: "Lazer", value: 680, color: "#22c55e" },
-  { name: "Saúde", value: 420, color: "#3b82f6" },
-  { name: "Educação", value: 530, color: "#8b5cf6" },
-];
-
-const weeklyTrendData = [
-  { day: "Seg", valor: 120 },
-  { day: "Ter", valor: 85 },
-  { day: "Qua", valor: 200 },
-  { day: "Thu", valor: 95 },
-  { day: "Sex", valor: 150 },
-  { day: "Sáb", valor: 220 },
-  { day: "Dom", valor: 180 },
-];
-
-const comparisonData = [
-  { periodo: "Jan 2024", atual: 8500, anterior: 7800 },
-  { periodo: "Fev 2024", atual: 8800, anterior: 8200 },
-  { periodo: "Mar 2024", atual: 9200, anterior: 8600 },
-  { periodo: "Abr 2024", atual: 8600, anterior: 9100 },
-  { periodo: "Mai 2024", atual: 9500, anterior: 8900 },
-  { periodo: "Jun 2024", atual: 8900, anterior: 8400 },
-];
+import { useUserData } from "@/contexts/UserDataContext";
 
 export default function Analytics() {
   const [selectedPeriod, setSelectedPeriod] = useState("6months");
   const [selectedComparison, setSelectedComparison] = useState("previous-year");
+  const { entries, categories } = useUserData();
+
+  // Calculate real data from user entries
+  const generateMonthlyData = () => {
+    const months = [
+      "Jan",
+      "Fev",
+      "Mar",
+      "Abr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez",
+    ];
+
+    const currentYear = new Date().getFullYear();
+    const monthlyStats = months
+      .map((month, index) => {
+        const monthEntries = entries.filter((entry) => {
+          const entryDate = new Date(entry.date);
+          return (
+            entryDate.getMonth() === index &&
+            entryDate.getFullYear() === currentYear
+          );
+        });
+
+        const receitas = monthEntries
+          .filter((entry) => entry.type === "income")
+          .reduce((sum, entry) => sum + entry.amount, 0);
+
+        const despesas = Math.abs(
+          monthEntries
+            .filter((entry) => entry.type === "expense")
+            .reduce((sum, entry) => sum + entry.amount, 0),
+        );
+
+        return {
+          name: month,
+          receitas,
+          despesas,
+          saldo: receitas - despesas,
+        };
+      })
+      .filter((month) => month.receitas > 0 || month.despesas > 0);
+
+    return monthlyStats.length > 0
+      ? monthlyStats
+      : [{ name: "Atual", receitas: 0, despesas: 0, saldo: 0 }];
+  };
+
+  const generateCategoryExpensesData = () => {
+    const categoryStats = categories
+      .filter((cat) => cat.type === "expense")
+      .map((category) => {
+        const categoryEntries = entries.filter(
+          (entry) =>
+            entry.category === category.name && entry.type === "expense",
+        );
+        const value = categoryEntries.reduce(
+          (sum, entry) => sum + Math.abs(entry.amount),
+          0,
+        );
+        return {
+          name: category.name,
+          value,
+          color: category.color,
+        };
+      })
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    return categoryStats.length > 0
+      ? categoryStats
+      : [{ name: "Sem dados", value: 1, color: "#6b7280" }];
+  };
+
+  const generateWeeklyTrendData = () => {
+    const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const weeklyStats = daysOfWeek.map((day, index) => {
+      const dayEntries = entries.filter((entry) => {
+        const entryDate = new Date(entry.date);
+        return entryDate.getDay() === index;
+      });
+
+      const valor =
+        dayEntries.reduce((sum, entry) => sum + Math.abs(entry.amount), 0) /
+        Math.max(dayEntries.length, 1);
+
+      return { day, valor: Math.round(valor) };
+    });
+
+    return weeklyStats;
+  };
+
+  const monthlyData = generateMonthlyData();
+  const categoryExpensesData = generateCategoryExpensesData();
+  const weeklyTrendData = generateWeeklyTrendData();
+
+  // Calculate totals from real data
+  const totalIncome = entries
+    .filter((entry) => entry.type === "income")
+    .reduce((sum, entry) => sum + entry.amount, 0);
+
+  const totalExpenses = Math.abs(
+    entries
+      .filter((entry) => entry.type === "expense")
+      .reduce((sum, entry) => sum + entry.amount, 0),
+  );
+
+  const balance = totalIncome - totalExpenses;
+  const savingsRate = totalIncome > 0 ? (balance / totalIncome) * 100 : 0;
 
   const handleExportReport = (type: string) => {
-    toast.success(`Exportando relatório ${type}...`);
+    if (entries.length === 0) {
+      toast.error("Nenhum dado para exportar");
+      return;
+    }
+
+    const reportData = {
+      periodo: selectedPeriod,
+      totalReceitas: totalIncome,
+      totalDespesas: totalExpenses,
+      saldo: balance,
+      taxaEconomia: savingsRate,
+      dadosMensais: monthlyData,
+      categorias: categoryExpensesData,
+      tendenciaSemanal: weeklyTrendData,
+      geradoEm: new Date().toISOString(),
+    };
+
+    const dataStr = JSON.stringify(reportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `plannerfin-relatorio-${type}-${new Date().toISOString().split("T")[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast.success(`Relatório ${type} exportado com sucesso!`);
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -158,9 +262,12 @@ export default function Analytics() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Receita Total</p>
-                  <p className="font-bold text-xl">{formatCurrency(53500)}</p>
-                  <p className="text-xs text-success">
-                    +12.5% vs período anterior
+                  <p className="font-bold text-xl">
+                    {formatCurrency(totalIncome)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {entries.filter((e) => e.type === "income").length}{" "}
+                    lançamentos
                   </p>
                 </div>
               </div>
@@ -175,9 +282,12 @@ export default function Analytics() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Despesa Total</p>
-                  <p className="font-bold text-xl">{formatCurrency(38800)}</p>
-                  <p className="text-xs text-destructive">
-                    +8.2% vs período anterior
+                  <p className="font-bold text-xl">
+                    {formatCurrency(totalExpenses)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {entries.filter((e) => e.type === "expense").length}{" "}
+                    lançamentos
                   </p>
                 </div>
               </div>
@@ -191,10 +301,14 @@ export default function Analytics() {
                   <DollarSign className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Saldo Médio</p>
-                  <p className="font-bold text-xl">{formatCurrency(2450)}</p>
-                  <p className="text-xs text-primary">
-                    +18.7% vs período anterior
+                  <p className="text-sm text-muted-foreground">Saldo Atual</p>
+                  <p
+                    className={`font-bold text-xl ${balance >= 0 ? "text-success" : "text-destructive"}`}
+                  >
+                    {formatCurrency(balance)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {balance >= 0 ? "Superávit" : "Déficit"}
                   </p>
                 </div>
               </div>
@@ -211,8 +325,14 @@ export default function Analytics() {
                   <p className="text-sm text-muted-foreground">
                     Taxa de Economia
                   </p>
-                  <p className="font-bold text-xl">27.5%</p>
-                  <p className="text-xs text-muted-foreground">Meta: 30%</p>
+                  <p className="font-bold text-xl">{savingsRate.toFixed(1)}%</p>
+                  <p className="text-xs text-muted-foreground">
+                    {savingsRate >= 20
+                      ? "Excelente!"
+                      : savingsRate >= 10
+                        ? "Bom"
+                        : "Pode melhorar"}
+                  </p>
                 </div>
               </div>
             </CardContent>
