@@ -35,13 +35,6 @@ export default function Dashboard() {
     useUserData();
 
   const [selectedBudget, setSelectedBudget] = useState(activeBudget?.id || "");
-    createBudget,
-    switchBudget,
-  } = useUserData();
-
-  const [selectedBudget, setSelectedBudget] = useState(
-    activeBudget?.id || "",
-  );
 
   const budgets = currentUser?.budgets || [];
   const currentBudget = activeBudget;
