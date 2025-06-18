@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
+import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,57 +65,28 @@ const layoutOptions = [
 ];
 
 export default function Settings() {
-  const [settings, setSettings] = useState({
-    // Appearance
-    theme: "light",
-    primaryColor: "blue",
-    font: "inter",
-    fontSize: [16],
-    layout: "default",
-    darkMode: false,
-    highContrast: false,
-    reducedMotion: false,
-
-    // Notifications
-    emailNotifications: true,
-    collaborationNotifications: true,
-    reminderNotifications: false,
-    marketingEmails: false,
-    pushNotifications: true,
-
-    // Privacy & Security
-    twoFactorAuth: false,
-    dataSharing: false,
-    analyticsTracking: true,
-    sessionTimeout: [30],
-
-    // Accessibility
-    screenReader: false,
-    keyboardNavigation: true,
-    voiceAnnouncements: false,
-    largeButtons: false,
-
-    // General
-    language: "pt-BR",
-    currency: "BRL",
-    timezone: "America/Sao_Paulo",
-    dateFormat: "DD/MM/YYYY",
-    numberFormat: "1.234,56",
-  });
+  const {
+    settings,
+    updateSetting,
+    resetSettings,
+    exportSettings,
+    importSettings,
+  } = useSettings();
 
   const handleSettingChange = (key: string, value: any) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    updateSetting(key as any, value);
     toast.success("Configuração atualizada!");
   };
 
   const handleExportSettings = () => {
-    const dataStr = JSON.stringify(settings, null, 2);
+    const dataStr = exportSettings();
     const dataBlob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement("a");
     link.href = url;
     link.download = "plannerfin-settings.json";
     link.click();
+    URL.revokeObjectURL(url);
     toast.success("Configurações exportadas!");
   };
 
@@ -124,9 +96,12 @@ export default function Settings() {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const importedSettings = JSON.parse(e.target?.result as string);
-          setSettings(importedSettings);
-          toast.success("Configurações importadas com sucesso!");
+          const result = e.target?.result as string;
+          if (importSettings(result)) {
+            toast.success("Configurações importadas com sucesso!");
+          } else {
+            toast.error("Erro ao importar configurações");
+          }
         } catch (error) {
           toast.error("Erro ao importar configurações");
         }
@@ -136,36 +111,7 @@ export default function Settings() {
   };
 
   const resetToDefaults = () => {
-    // Reset to default settings
-    const defaultSettings = {
-      theme: "light",
-      primaryColor: "blue",
-      font: "inter",
-      fontSize: [16],
-      layout: "default",
-      darkMode: false,
-      highContrast: false,
-      reducedMotion: false,
-      emailNotifications: true,
-      collaborationNotifications: true,
-      reminderNotifications: false,
-      marketingEmails: false,
-      pushNotifications: true,
-      twoFactorAuth: false,
-      dataSharing: false,
-      analyticsTracking: true,
-      sessionTimeout: [30],
-      screenReader: false,
-      keyboardNavigation: true,
-      voiceAnnouncements: false,
-      largeButtons: false,
-      language: "pt-BR",
-      currency: "BRL",
-      timezone: "America/Sao_Paulo",
-      dateFormat: "DD/MM/YYYY",
-      numberFormat: "1.234,56",
-    };
-    setSettings(defaultSettings);
+    resetSettings();
     toast.success("Configurações restauradas para o padrão!");
   };
 
