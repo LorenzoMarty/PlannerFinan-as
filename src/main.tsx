@@ -100,5 +100,21 @@ if (import.meta.env.DEV) {
     }
     originalLog.apply(console, args);
   };
+
+  // Global error event listener for any warnings that slip through
+  window.addEventListener("error", (event) => {
+    if (event.message && shouldFilterWarning(event.message)) {
+      event.preventDefault();
+      return false;
+    }
+  });
+
+  // Intercept unhandled promise rejections that might contain warnings
+  window.addEventListener("unhandledrejection", (event) => {
+    if (event.reason && shouldFilterWarning(String(event.reason))) {
+      event.preventDefault();
+      return false;
+    }
+  });
 }
 createRoot(document.getElementById("root")!).render(<App />);
