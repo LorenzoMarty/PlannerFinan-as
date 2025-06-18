@@ -56,6 +56,7 @@ interface UserDataContextType {
   // Budget operations
   createBudget: (name: string) => string;
   switchBudget: (budgetId: string) => void;
+  deleteBudget: (budgetId: string) => boolean;
 
   // Entry operations
   addEntry: (entry: Omit<BudgetEntry, "id" | "userId" | "budgetId">) => void;
@@ -268,6 +269,31 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       ...currentUser,
       activeBudgetId: budgetId,
     });
+  };
+
+  const deleteBudget = (budgetId: string): boolean => {
+    if (!currentUser) return false;
+
+    // Can't delete if it's the only budget
+    if (currentUser.budgets.length <= 1) {
+      return false;
+    }
+
+    // Can't delete the currently active budget
+    if (budgetId === currentUser.activeBudgetId) {
+      return false;
+    }
+
+    const updatedBudgets = currentUser.budgets.filter(
+      (budget) => budget.id !== budgetId,
+    );
+
+    setCurrentUser({
+      ...currentUser,
+      budgets: updatedBudgets,
+    });
+
+    return true;
   };
 
   const addEntry = (
@@ -496,6 +522,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         entries,
         createBudget,
         switchBudget,
+        deleteBudget,
         addEntry,
         updateEntry,
         deleteEntry,
