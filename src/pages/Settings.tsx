@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useSettings } from "@/contexts/SettingsContext";
 import SettingsDemo from "@/components/demo/SettingsDemo";
+import ChangePasswordDialog from "@/components/security/ChangePasswordDialog";
+import ProfileManagementDialog from "@/components/security/ProfileManagementDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -506,14 +508,22 @@ export default function Settings() {
                   <Separator />
 
                   <div className="space-y-3">
-                    <Button variant="outline" className="w-full">
-                      <Key className="w-4 h-4 mr-2" />
-                      Alterar Senha
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <User className="w-4 h-4 mr-2" />
-                      Gerenciar Perfil
-                    </Button>
+                    <ChangePasswordDialog
+                      trigger={
+                        <Button variant="outline" className="w-full">
+                          <Key className="w-4 h-4 mr-2" />
+                          Alterar Senha
+                        </Button>
+                      }
+                    />
+                    <ProfileManagementDialog
+                      trigger={
+                        <Button variant="outline" className="w-full">
+                          <User className="w-4 h-4 mr-2" />
+                          Gerenciar Perfil
+                        </Button>
+                      }
+                    />
                   </div>
                 </CardContent>
               </Card>
