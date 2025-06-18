@@ -26,6 +26,15 @@ if (import.meta.env.DEV) {
       return true;
     }
 
+    // Filter DialogTitle accessibility warnings from third-party libraries
+    if (
+      fullMessage.includes("DialogContent") &&
+      fullMessage.includes("requires a") &&
+      fullMessage.includes("DialogTitle")
+    ) {
+      return true;
+    }
+
     // Filter Recharts component warnings
     const rechartsComponents = [
       "XAxis",
