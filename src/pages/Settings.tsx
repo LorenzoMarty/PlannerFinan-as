@@ -279,11 +279,11 @@ export default function Settings() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Tamanho da Fonte: {settings.fontSize[0]}px</Label>
+                    <Label>Tamanho da Fonte: {settings.fontSize}px</Label>
                     <Slider
-                      value={settings.fontSize}
+                      value={[settings.fontSize]}
                       onValueChange={(value) =>
-                        handleSettingChange("fontSize", value)
+                        handleSettingChange("fontSize", value[0])
                       }
                       max={24}
                       min={12}
@@ -297,7 +297,7 @@ export default function Settings() {
                   </div>
 
                   <div className="p-4 bg-muted rounded-lg">
-                    <p style={{ fontSize: `${settings.fontSize[0]}px` }}>
+                    <p style={{ fontSize: `${settings.fontSize}px` }}>
                       Exemplo de texto com o tamanho selecionado. O PlannerFin
                       facilita o controle das suas finanças.
                     </p>
@@ -485,12 +485,12 @@ export default function Settings() {
 
                   <div className="space-y-3">
                     <Label>
-                      Timeout da Sessão: {settings.sessionTimeout[0]} minutos
+                      Timeout da Sessão: {settings.sessionTimeout} minutos
                     </Label>
                     <Slider
-                      value={settings.sessionTimeout}
+                      value={[settings.sessionTimeout]}
                       onValueChange={(value) =>
-                        handleSettingChange("sessionTimeout", value)
+                        handleSettingChange("sessionTimeout", value[0])
                       }
                       max={120}
                       min={15}
