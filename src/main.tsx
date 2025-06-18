@@ -57,13 +57,6 @@ if (import.meta.env.DEV) {
     );
 
     if (isAccessibilityWarning) {
-      // Debug: temporarily log to verify filtering is working
-      if (fullMessage.includes("DialogContent")) {
-        console.log(
-          "🛡️ Filtered accessibility warning:",
-          fullMessage.substring(0, 100),
-        );
-      }
       return true;
     }
 
