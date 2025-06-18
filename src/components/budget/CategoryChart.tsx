@@ -110,8 +110,15 @@ export default function CategoryChart() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-            <p>Nenhuma despesa registrada ainda</p>
+          <div className="flex items-center justify-center h-[250px] sm:h-[300px] text-muted-foreground">
+            <div className="text-center space-y-2">
+              <p className="text-sm sm:text-base">
+                Nenhuma despesa registrada ainda
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                Adicione lançamentos para visualizar o gráfico
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
