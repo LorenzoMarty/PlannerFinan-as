@@ -170,7 +170,10 @@ export default function Collaboration() {
                 (entry) => entry.budgetId === budget.id,
               );
               const isActive = budget.id === activeBudget?.id;
-              const canDelete = currentUser.budgets.length > 1 && !isActive;
+              const isOwner = budget.ownerId === currentUser.id;
+              const canDelete =
+                currentUser.budgets.length > 1 && !isActive && isOwner;
+              const canLeave = !isOwner;
 
               return (
                 <Card
@@ -184,11 +187,23 @@ export default function Collaboration() {
                       <div className="flex-1 min-w-0">
                         <CardTitle className="text-base sm:text-lg flex items-center gap-2 flex-wrap">
                           <span className="truncate">{budget.name}</span>
-                          {isActive && (
-                            <Badge variant="default" className="text-xs">
-                              Ativa
-                            </Badge>
-                          )}
+                          <div className="flex gap-1">
+                            {isActive && (
+                              <Badge variant="default" className="text-xs">
+                                Ativa
+                              </Badge>
+                            )}
+                            {isOwner ? (
+                              <Badge variant="outline" className="text-xs">
+                                <Crown className="w-3 h-3 mr-1" />
+                                Proprietário
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                Colaborador
+                              </Badge>
+                            )}
+                          </div>
                         </CardTitle>
                         <div className="flex items-center gap-2 mt-2">
                           <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
@@ -217,6 +232,8 @@ export default function Collaboration() {
                             <Share2 className="mr-2 h-4 w-4" />
                             Compartilhar
                           </DropdownMenuItem>
+
+                          {/* Delete option for owners */}
                           {canDelete && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -225,7 +242,7 @@ export default function Collaboration() {
                                   className="text-destructive focus:text-destructive"
                                 >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  Excluir
+                                  Excluir Planilha
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
@@ -236,7 +253,8 @@ export default function Collaboration() {
                                   <AlertDialogDescription>
                                     Tem certeza que deseja excluir a planilha "
                                     {budget.name}"? Esta ação não pode ser
-                                    desfeita e todos os dados serão perdidos.
+                                    desfeita e todos os dados serão perdidos
+                                    permanentemente.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -249,7 +267,48 @@ export default function Collaboration() {
                                     }
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   >
-                                    Excluir
+                                    Excluir Permanentemente
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+
+                          {/* Leave option for collaborators */}
+                          {canLeave && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                  onSelect={(e) => e.preventDefault()}
+                                  className="text-orange-600 focus:text-orange-600"
+                                >
+                                  <LogOut className="mr-2 h-4 w-4" />
+                                  Sair da Planilha
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Sair da Planilha
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tem certeza que deseja sair da planilha "
+                                    {budget.name}"? Você perderá acesso aos
+                                    dados desta planilha, mas poderá ser
+                                    adicionado novamente pelo proprietário.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>
+                                    Cancelar
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleLeaveBudget(budget.id, budget.name)
+                                    }
+                                    className="bg-orange-600 text-white hover:bg-orange-700"
+                                  >
+                                    Sair da Planilha
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
