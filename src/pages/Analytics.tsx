@@ -277,7 +277,11 @@ export default function Analytics() {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="currentColor"
+                        opacity={0.3}
+                      />
                       <XAxis
                         dataKey="name"
                         tick={{ fill: "currentColor" }}
@@ -360,7 +364,11 @@ export default function Analytics() {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={weeklyTrendData}>
-                      <CartesianGrid strokeDasharray="3 3" />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="currentColor"
+                        opacity={0.3}
+                      />
                       <XAxis
                         dataKey="day"
                         tick={{ fill: "currentColor" }}
@@ -570,7 +578,11 @@ export default function Analytics() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
                   <BarChart data={comparisonData}>
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="currentColor"
+                      opacity={0.3}
+                    />
                     <XAxis
                       dataKey="periodo"
                       tick={{ fill: "currentColor" }}
