@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import BudgetTable from "@/components/budget/BudgetTable";
 import CategoryChart from "@/components/budget/CategoryChart";
+import { useUserData } from "@/contexts/UserDataContext";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -19,33 +20,33 @@ import {
   TrendingUp,
   Users,
   Copy,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState("2024-01");
-  const [selectedBudget, setSelectedBudget] = useState("personal");
+  const { currentUser, activeBudget, entries, createBudget, switchBudget } =
+    useUserData();
 
-  // Mock data for budget selection
-  const budgets = [
-    { id: "personal", name: "Orçamento Pessoal", code: "PF001", shared: false },
-    {
-      id: "family",
-      name: "Orçamento Familiar",
-      code: "PF002",
-      shared: true,
-      collaborators: 3,
-    },
-    {
-      id: "project",
-      name: "Projeto Casa Nova",
-      code: "PF003",
-      shared: true,
-      collaborators: 2,
-    },
-  ];
+  const [selectedBudget, setSelectedBudget] = useState(activeBudget?.id || "");
 
-  const currentBudget = budgets.find((b) => b.id === selectedBudget);
+  const budgets = currentUser?.budgets || [];
+  const currentBudget = activeBudget;
+
+  const handleBudgetChange = (budgetId: string) => {
+    setSelectedBudget(budgetId);
+    switchBudget(budgetId);
+  };
+
+  const handleCreateBudget = () => {
+    const name = prompt("Nome da nova planilha:");
+    if (name && name.trim()) {
+      const newBudgetId = createBudget(name.trim());
+      setSelectedBudget(newBudgetId);
+      toast.success("Nova planilha criada!");
+    }
+  };
 
   const handleShareBudget = () => {
     if (currentBudget) {
@@ -57,7 +58,32 @@ export default function Dashboard() {
   };
 
   const handleExportData = () => {
-    toast.success("Exportação iniciada! O arquivo será baixado em breve.");
+    if (entries.length === 0) {
+      toast.error("Nenhum dado para exportar");
+      return;
+    }
+
+    const csvData = [
+      ["Data", "Descrição", "Categoria", "Valor", "Tipo"],
+      ...entries.map((entry) => [
+        entry.date,
+        entry.description,
+        entry.category,
+        entry.amount.toString(),
+        entry.type === "income" ? "Receita" : "Despesa",
+      ]),
+    ];
+
+    const csvContent = csvData.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `plannerfin-${currentBudget?.name || "dados"}-${new Date().toISOString().split("T")[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast.success("Dados exportados com sucesso!");
   };
 
   return (
@@ -88,23 +114,28 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Planilha Ativa</label>
-            <Select value={selectedBudget} onValueChange={setSelectedBudget}>
-              <SelectTrigger className="w-full sm:w-[280px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {budgets.map((budget) => (
-                  <SelectItem key={budget.id} value={budget.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{budget.name}</span>
-                      {budget.shared && (
-                        <Users className="w-3 h-3 text-muted-foreground" />
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={selectedBudget} onValueChange={handleBudgetChange}>
+                <SelectTrigger className="w-full sm:w-[280px]">
+                  <SelectValue placeholder="Selecione uma planilha" />
+                </SelectTrigger>
+                <SelectContent>
+                  {budgets.map((budget) => (
+                    <SelectItem key={budget.id} value={budget.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{budget.name}</span>
+                        {budget.collaborators.length > 0 && (
+                          <Users className="w-3 h-3 text-muted-foreground" />
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleCreateBudget}>
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -135,10 +166,10 @@ export default function Dashboard() {
                       <Badge variant="outline" className="text-xs">
                         Código: {currentBudget.code}
                       </Badge>
-                      {currentBudget.shared && (
+                      {currentBudget.collaborators.length > 0 && (
                         <Badge variant="secondary" className="text-xs">
                           <Users className="w-3 h-3 mr-1" />
-                          {currentBudget.collaborators} colaboradores
+                          {currentBudget.collaborators.length} colaboradores
                         </Badge>
                       )}
                     </div>
@@ -182,7 +213,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Lançamentos</p>
-                  <p className="font-semibold">47</p>
+                  <p className="font-semibold">{entries.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -197,7 +228,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm text-muted-foreground">Colaboradores</p>
                   <p className="font-semibold">
-                    {currentBudget?.collaborators || 1}
+                    {(currentBudget?.collaborators.length || 0) + 1}
                   </p>
                 </div>
               </div>
