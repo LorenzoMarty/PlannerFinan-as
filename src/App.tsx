@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import Collaboration from "./pages/Collaboration";
 import NotFound from "./pages/NotFound";
 
 // Protected Route wrapper
@@ -75,7 +76,7 @@ const App = () => {
                 path="/collaboration"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <Collaboration />
                   </ProtectedRoute>
                 }
               />
