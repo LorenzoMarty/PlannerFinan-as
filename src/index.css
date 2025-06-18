@@ -146,6 +146,10 @@
   .bg-warning-foreground {
     background-color: hsl(var(--warning-foreground));
   }
+
+  .border-success {
+    border-color: hsl(var(--success));
+  }
 }
 
 /* Settings CSS Classes */
