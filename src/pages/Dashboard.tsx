@@ -293,24 +293,106 @@ export default function Dashboard() {
           <div className="space-y-6">
             <CategoryChart />
 
-            {/* Quick Actions Card */}
+            {/* Financial Summary Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Ações Rápidas</CardTitle>
+                <CardTitle className="text-lg">Resumo Financeiro</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
-                  <Download className="w-4 h-4 mr-2" />
-                  Exportar relatório mensal
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Users className="w-4 h-4 mr-2" />
-                  Convidar colaborador
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Ver histórico completo
-                </Button>
+              <CardContent className="space-y-4">
+                {(() => {
+                  const totalIncome = entries
+                    .filter((e) => e.type === "income")
+                    .reduce((sum, e) => sum + e.amount, 0);
+                  const totalExpenses = Math.abs(
+                    entries
+                      .filter((e) => e.type === "expense")
+                      .reduce((sum, e) => sum + e.amount, 0),
+                  );
+                  const balance = totalIncome - totalExpenses;
+                  const savingsRate =
+                    totalIncome > 0 ? (balance / totalIncome) * 100 : 0;
+
+                  if (entries.length === 0) {
+                    return (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground text-sm">
+                          Adicione seus primeiros lançamentos para ver o resumo
+                          financeiro
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          Total de Receitas
+                        </span>
+                        <span className="font-medium text-success">
+                          {new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(totalIncome)}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">
+                          Total de Despesas
+                        </span>
+                        <span className="font-medium text-destructive">
+                          {new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(totalExpenses)}
+                        </span>
+                      </div>
+
+                      <div className="border-t pt-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">
+                            Saldo Final
+                          </span>
+                          <span
+                            className={`font-bold ${balance >= 0 ? "text-success" : "text-destructive"}`}
+                          >
+                            {new Intl.NumberFormat("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            }).format(balance)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs text-muted-foreground">
+                            Taxa de Economia
+                          </span>
+                          <span className="text-xs font-medium">
+                            {savingsRate.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min(savingsRate, 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {savingsRate >= 20
+                            ? "Excelente controle!"
+                            : savingsRate >= 10
+                              ? "Bom desempenho!"
+                              : savingsRate > 0
+                                ? "Continue assim!"
+                                : "Atenção aos gastos"}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </div>
