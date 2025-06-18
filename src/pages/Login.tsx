@@ -1,5 +1,6 @@
 import LoginForm from "@/components/auth/LoginForm";
 import { useNavigate } from "react-router-dom";
+import { useUserData } from "@/contexts/UserDataContext";
 
 const demoUsers = [
   {
@@ -21,6 +22,7 @@ const demoUsers = [
 
 export default function Login() {
   const navigate = useNavigate();
+  const { setUser } = useUserData();
 
   const handleLogin = (email: string, password: string) => {
     // Check if user exists in demo users
@@ -28,33 +30,24 @@ export default function Login() {
       (u) => u.email === email && u.password === password,
     );
 
-    if (user) {
-      // Store user info in localStorage
-      localStorage.setItem(
-        "plannerfinUser",
-        JSON.stringify({
-          email: user.email,
-          name: user.name,
-          authenticated: true,
-          loginTime: new Date().toISOString(),
-        }),
-      );
+    const userData = user
+      ? { email: user.email, name: user.name }
+      : { email, name: email.split("@")[0] };
 
-      navigate("/dashboard");
-    } else {
-      // For any other email/password, still allow login (for demo purposes)
-      localStorage.setItem(
-        "plannerfinUser",
-        JSON.stringify({
-          email,
-          name: email.split("@")[0],
-          authenticated: true,
-          loginTime: new Date().toISOString(),
-        }),
-      );
+    // Store user info in localStorage
+    localStorage.setItem(
+      "plannerfinUser",
+      JSON.stringify({
+        ...userData,
+        authenticated: true,
+        loginTime: new Date().toISOString(),
+      }),
+    );
 
-      navigate("/dashboard");
-    }
+    // Initialize user data context
+    setUser(userData);
+
+    navigate("/dashboard");
   };
 
   return <LoginForm onLogin={handleLogin} />;
