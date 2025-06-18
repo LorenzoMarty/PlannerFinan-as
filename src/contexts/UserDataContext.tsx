@@ -75,6 +75,7 @@ interface UserDataContextType {
   // Collaboration operations
   joinBudgetByCode: (code: string) => Promise<boolean>;
   findBudgetByCode: (code: string) => Budget | null;
+  leaveBudgetAsCollaborator: (budgetId: string) => boolean;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(
@@ -292,6 +293,66 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       ...currentUser,
       budgets: updatedBudgets,
     });
+
+    return true;
+  };
+
+  const leaveBudgetAsCollaborator = (budgetId: string): boolean => {
+    if (!currentUser) return false;
+
+    const targetBudget = currentUser.budgets.find((b) => b.id === budgetId);
+    if (!targetBudget) return false;
+
+    // Check if user is not the owner (i.e., is a collaborator)
+    if (targetBudget.ownerId === currentUser.id) {
+      return false; // Owners can't "leave", they can only delete
+    }
+
+    // Remove budget from current user's list
+    const updatedBudgets = currentUser.budgets.filter(
+      (budget) => budget.id !== budgetId,
+    );
+
+    // If the leaving budget is the active one, switch to another
+    let newActiveBudgetId = currentUser.activeBudgetId;
+    if (budgetId === currentUser.activeBudgetId && updatedBudgets.length > 0) {
+      newActiveBudgetId = updatedBudgets[0].id;
+    }
+
+    setCurrentUser({
+      ...currentUser,
+      budgets: updatedBudgets,
+      activeBudgetId: newActiveBudgetId,
+    });
+
+    // Remove user from the original budget's collaborators list
+    try {
+      const ownerKey = `plannerfinUserData_${targetBudget.ownerId}`;
+      const ownerData = JSON.parse(localStorage.getItem(ownerKey) || "{}");
+
+      if (ownerData.budgets) {
+        const updatedOwnerBudgets = ownerData.budgets.map((budget: Budget) =>
+          budget.id === budgetId
+            ? {
+                ...budget,
+                collaborators: budget.collaborators.filter(
+                  (id) => id !== currentUser.id,
+                ),
+              }
+            : budget,
+        );
+
+        localStorage.setItem(
+          ownerKey,
+          JSON.stringify({
+            ...ownerData,
+            budgets: updatedOwnerBudgets,
+          }),
+        );
+      }
+    } catch (error) {
+      console.warn("Could not update original budget collaborators:", error);
+    }
 
     return true;
   };
@@ -533,6 +594,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         clearUser,
         joinBudgetByCode,
         findBudgetByCode,
+        leaveBudgetAsCollaborator,
       }}
     >
       {children}
