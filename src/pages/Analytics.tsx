@@ -475,110 +475,133 @@ export default function Analytics() {
           </TabsContent>
 
           <TabsContent value="trends" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Weekly Spending Pattern */}
+            {entries.length === 0 ? (
               <Card>
-                <CardHeader>
-                  <CardTitle>Padrão Semanal de Gastos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={weeklyTrendData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="currentColor"
-                        opacity={0.3}
-                      />
-                      <XAxis
-                        dataKey="day"
-                        tick={{ fill: "currentColor" }}
-                        tickLine={{ stroke: "currentColor" }}
-                        axisLine={{ stroke: "currentColor" }}
-                      />
-                      <YAxis
-                        tick={{ fill: "currentColor" }}
-                        tickLine={{ stroke: "currentColor" }}
-                        axisLine={{ stroke: "currentColor" }}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Line
-                        type="monotone"
-                        dataKey="valor"
-                        stroke="#8b5cf6"
-                        strokeWidth={3}
-                        name="Gasto Médio"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">
+                    Adicione alguns lançamentos para ver as tendências dos seus
+                    dados
+                  </p>
                 </CardContent>
               </Card>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Weekly Spending Pattern */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Padrão Semanal de Movimentação</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={weeklyTrendData}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="currentColor"
+                          opacity={0.3}
+                        />
+                        <XAxis
+                          dataKey="day"
+                          tick={{ fill: "currentColor" }}
+                          tickLine={{ stroke: "currentColor" }}
+                          axisLine={{ stroke: "currentColor" }}
+                        />
+                        <YAxis
+                          tick={{ fill: "currentColor" }}
+                          tickLine={{ stroke: "currentColor" }}
+                          axisLine={{ stroke: "currentColor" }}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Line
+                          type="monotone"
+                          dataKey="valor"
+                          stroke="#8b5cf6"
+                          strokeWidth={3}
+                          name="Valor Médio"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
 
-              {/* Trend Analysis */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Análise de Tendências</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg">
-                    <div>
-                      <p className="font-medium">Receitas</p>
-                      <p className="text-sm text-muted-foreground">
-                        Tendência crescente
+                {/* Real Analysis */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Resumo Financeiro</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg">
+                      <div>
+                        <p className="font-medium">Total de Receitas</p>
+                        <p className="text-sm text-muted-foreground">
+                          {entries.filter((e) => e.type === "income").length}{" "}
+                          lançamentos
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-success">
+                          {formatCurrency(totalIncome)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-destructive/10 rounded-lg">
+                      <div>
+                        <p className="font-medium">Total de Despesas</p>
+                        <p className="text-sm text-muted-foreground">
+                          {entries.filter((e) => e.type === "expense").length}{" "}
+                          lançamentos
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-destructive">
+                          {formatCurrency(totalExpenses)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
+                      <div>
+                        <p className="font-medium">Saldo Final</p>
+                        <p className="text-sm text-muted-foreground">
+                          {balance >= 0
+                            ? "Resultado positivo"
+                            : "Resultado negativo"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p
+                          className={`font-bold ${balance >= 0 ? "text-success" : "text-destructive"}`}
+                        >
+                          {formatCurrency(balance)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 p-4 bg-muted rounded-lg">
+                      <h4 className="font-semibold mb-2">Taxa de Economia</h4>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-background rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min(savingsRate, 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium">
+                          {savingsRate.toFixed(1)}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {savingsRate >= 20
+                          ? "Excelente controle financeiro!"
+                          : savingsRate >= 10
+                            ? "Bom desempenho, continue assim!"
+                            : "Considere revisar seus gastos"}
                       </p>
                     </div>
-                    <Badge
-                      variant="secondary"
-                      className="bg-success text-success-foreground"
-                    >
-                      +12.5%
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-warning/10 rounded-lg">
-                    <div>
-                      <p className="font-medium">Despesas</p>
-                      <p className="text-sm text-muted-foreground">
-                        Crescimento moderado
-                      </p>
-                    </div>
-                    <Badge
-                      variant="secondary"
-                      className="bg-warning text-warning-foreground"
-                    >
-                      +8.2%
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
-                    <div>
-                      <p className="font-medium">Saldo</p>
-                      <p className="text-sm text-muted-foreground">
-                        Melhoria significativa
-                      </p>
-                    </div>
-                    <Badge
-                      variant="secondary"
-                      className="bg-primary text-primary-foreground"
-                    >
-                      +18.7%
-                    </Badge>
-                  </div>
-
-                  <div className="mt-6 p-4 bg-muted rounded-lg">
-                    <h4 className="font-semibold mb-2">
-                      Projeção para próximo mês
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Com base nas tendências atuais, o saldo estimado para
-                      julho é de{" "}
-                      <span className="font-medium text-primary">
-                        {formatCurrency(2800)}
-                      </span>
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="categories" className="space-y-6">
@@ -673,102 +696,199 @@ export default function Analytics() {
           </TabsContent>
 
           <TabsContent value="comparison" className="space-y-6">
-            <div className="mb-4">
-              <Select
-                value={selectedComparison}
-                onValueChange={setSelectedComparison}
-              >
-                <SelectTrigger className="w-full sm:w-[250px]">
-                  <SelectValue placeholder="Comparar com..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="previous-year">Ano anterior</SelectItem>
-                  <SelectItem value="previous-period">
-                    Período anterior
-                  </SelectItem>
-                  <SelectItem value="budget">Orçamento planejado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Comparação: Período Atual vs Ano Anterior</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={comparisonData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="currentColor"
-                      opacity={0.3}
-                    />
-                    <XAxis
-                      dataKey="periodo"
-                      tick={{ fill: "currentColor" }}
-                      tickLine={{ stroke: "currentColor" }}
-                      axisLine={{ stroke: "currentColor" }}
-                    />
-                    <YAxis
-                      tick={{ fill: "currentColor" }}
-                      tickLine={{ stroke: "currentColor" }}
-                      axisLine={{ stroke: "currentColor" }}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Bar dataKey="atual" fill="#3b82f6" name="Período Atual" />
-                    <Bar
-                      dataKey="anterior"
-                      fill="#6b7280"
-                      name="Ano Anterior"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Comparison Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {entries.length === 0 ? (
               <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <h4 className="font-semibold">Variação Total</h4>
-                    <p className="text-3xl font-bold text-success mt-2">
-                      +15.3%
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      vs ano anterior
-                    </p>
-                  </div>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">
+                    Adicione lançamentos para ver comparações e análises
+                    detalhadas
+                  </p>
                 </CardContent>
               </Card>
+            ) : (
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Distribuição de Receitas vs Despesas</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Receitas</span>
+                        <span className="text-sm text-success font-medium">
+                          {formatCurrency(totalIncome)}
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-4">
+                        <div
+                          className="bg-success h-4 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${
+                              totalIncome + totalExpenses > 0
+                                ? (totalIncome /
+                                    (totalIncome + totalExpenses)) *
+                                  100
+                                : 0
+                            }%`,
+                          }}
+                        />
+                      </div>
 
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <h4 className="font-semibold">Melhor Mês</h4>
-                    <p className="text-3xl font-bold text-primary mt-2">Mai</p>
-                    <p className="text-sm text-muted-foreground">
-                      +42% vs ano anterior
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Despesas</span>
+                        <span className="text-sm text-destructive font-medium">
+                          {formatCurrency(totalExpenses)}
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-4">
+                        <div
+                          className="bg-destructive h-4 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${
+                              totalIncome + totalExpenses > 0
+                                ? (totalExpenses /
+                                    (totalIncome + totalExpenses)) *
+                                  100
+                                : 0
+                            }%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <h4 className="font-semibold">Economia Adicional</h4>
-                    <p className="text-3xl font-bold text-warning mt-2">
-                      {formatCurrency(4200)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      vs ano anterior
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                {/* Summary Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-center">
+                        <h4 className="font-semibold">Total de Lançamentos</h4>
+                        <p className="text-3xl font-bold text-primary mt-2">
+                          {entries.length}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          registros financeiros
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-center">
+                        <h4 className="font-semibold">Categorias Utilizadas</h4>
+                        <p className="text-3xl font-bold text-warning mt-2">
+                          {[...new Set(entries.map((e) => e.category))].length}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          categorias ativas
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-center">
+                        <h4 className="font-semibold">Maior Movimentação</h4>
+                        <p className="text-3xl font-bold text-accent mt-2">
+                          {formatCurrency(
+                            Math.max(
+                              ...entries.map((e) => Math.abs(e.amount)),
+                              0,
+                            ),
+                          )}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          maior valor registrado
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Period Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Resumo do Período</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="font-semibold mb-3">
+                          Receitas por Categoria
+                        </h4>
+                        <div className="space-y-2">
+                          {[
+                            ...new Set(
+                              entries
+                                .filter((e) => e.type === "income")
+                                .map((e) => e.category),
+                            ),
+                          ].map((category) => {
+                            const total = entries
+                              .filter(
+                                (e) =>
+                                  e.category === category &&
+                                  e.type === "income",
+                              )
+                              .reduce((sum, e) => sum + e.amount, 0);
+                            return (
+                              <div
+                                key={category}
+                                className="flex justify-between"
+                              >
+                                <span className="text-sm">{category}</span>
+                                <span className="text-sm font-medium text-success">
+                                  {formatCurrency(total)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold mb-3">
+                          Despesas por Categoria
+                        </h4>
+                        <div className="space-y-2">
+                          {[
+                            ...new Set(
+                              entries
+                                .filter((e) => e.type === "expense")
+                                .map((e) => e.category),
+                            ),
+                          ].map((category) => {
+                            const total = Math.abs(
+                              entries
+                                .filter(
+                                  (e) =>
+                                    e.category === category &&
+                                    e.type === "expense",
+                                )
+                                .reduce((sum, e) => sum + e.amount, 0),
+                            );
+                            return (
+                              <div
+                                key={category}
+                                className="flex justify-between"
+                              >
+                                <span className="text-sm">{category}</span>
+                                <span className="text-sm font-medium text-destructive">
+                                  {formatCurrency(total)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </div>
