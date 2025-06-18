@@ -855,6 +855,18 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     setCurrentUser(null);
   };
 
+  const resetDemoData = () => {
+    // Clear existing demo user data to force reload with new fictional data
+    const demoUserId = btoa("demo@plannerfin.com");
+    localStorage.removeItem(`plannerfinUserData_${demoUserId}`);
+
+    const adminUserId = btoa("admin@plannerfin.com");
+    localStorage.removeItem(`plannerfinUserData_${adminUserId}`);
+
+    const joaoUserId = btoa("user@exemplo.com");
+    localStorage.removeItem(`plannerfinUserData_${joaoUserId}`);
+  };
+
   const createBudget = (name: string): string => {
     if (!currentUser) return "";
 
