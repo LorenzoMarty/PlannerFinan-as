@@ -162,5 +162,36 @@ if (import.meta.env.DEV) {
     }
     originalTrace.apply(console, args);
   };
+
+  // Nuclear option: Override the global Error constructor for development
+  const OriginalError = window.Error;
+  window.Error = function (message?: string, ...args: any[]) {
+    if (message && shouldFilterWarning(message)) {
+      // Return a silent error that doesn't log
+      const silentError = new OriginalError("");
+      silentError.stack = "";
+      return silentError;
+    }
+    return new OriginalError(message, ...args);
+  } as any;
+
+  // Preserve the original Error prototype
+  window.Error.prototype = OriginalError.prototype;
+
+  // Override setTimeout console warnings (sometimes used by React dev tools)
+  const originalSetTimeout = window.setTimeout;
+  window.setTimeout = (callback: any, ms?: number) => {
+    const wrappedCallback = (...args: any[]) => {
+      try {
+        return callback(...args);
+      } catch (error) {
+        if (error instanceof Error && shouldFilterWarning(error.message)) {
+          return;
+        }
+        throw error;
+      }
+    };
+    return originalSetTimeout(wrappedCallback, ms);
+  };
 }
 createRoot(document.getElementById("root")!).render(<App />);
