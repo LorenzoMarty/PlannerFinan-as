@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import BudgetTable from "@/components/budget/BudgetTable";
 import CategoryChart from "@/components/budget/CategoryChart";
+import CollaborationDialog from "@/components/collaboration/CollaborationDialog";
 import { useUserData } from "@/contexts/UserDataContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,6 +100,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
+            <CollaborationDialog />
             <Button variant="outline" onClick={handleExportData}>
               <Download className="w-4 h-4 mr-2" />
               Exportar
