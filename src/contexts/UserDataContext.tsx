@@ -70,6 +70,10 @@ interface UserDataContextType {
   // User operations
   setUser: (user: { email: string; name: string }) => void;
   clearUser: () => void;
+
+  // Collaboration operations
+  joinBudgetByCode: (code: string) => Promise<boolean>;
+  findBudgetByCode: (code: string) => Budget | null;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(
@@ -385,6 +389,95 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     });
   };
 
+  const findBudgetByCode = (code: string): Budget | null => {
+    // Search through all users' data in localStorage to find budget by code
+    const allKeys = Object.keys(localStorage);
+    const userDataKeys = allKeys.filter((key) =>
+      key.startsWith("plannerfinUserData_"),
+    );
+
+    for (const key of userDataKeys) {
+      try {
+        const userData = JSON.parse(localStorage.getItem(key) || "{}");
+        if (userData.budgets) {
+          const budget = userData.budgets.find((b: Budget) => b.code === code);
+          if (budget) {
+            return budget;
+          }
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    return null;
+  };
+
+  const joinBudgetByCode = async (code: string): Promise<boolean> => {
+    if (!currentUser) return false;
+
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const targetBudget = findBudgetByCode(code);
+
+    if (!targetBudget) {
+      return false;
+    }
+
+    // Check if user already has access to this budget
+    const alreadyHasBudget = currentUser.budgets.some(
+      (budget) => budget.code === code,
+    );
+
+    if (alreadyHasBudget) {
+      return true; // Already has access
+    }
+
+    // Create a collaboration reference to the budget
+    const collaborativeBudget: Budget = {
+      ...targetBudget,
+      collaborators: [...targetBudget.collaborators, currentUser.id],
+    };
+
+    // Add the budget to current user's budget list
+    setCurrentUser({
+      ...currentUser,
+      budgets: [...currentUser.budgets, collaborativeBudget],
+      activeBudgetId: collaborativeBudget.id,
+    });
+
+    // In a real app, we would also update the original budget's collaborators list
+    // For this demo, we'll update it in the original user's data
+    try {
+      const ownerKey = `plannerfinUserData_${targetBudget.ownerId}`;
+      const ownerData = JSON.parse(localStorage.getItem(ownerKey) || "{}");
+
+      if (ownerData.budgets) {
+        const updatedBudgets = ownerData.budgets.map((budget: Budget) =>
+          budget.id === targetBudget.id
+            ? {
+                ...budget,
+                collaborators: [...budget.collaborators, currentUser.id],
+              }
+            : budget,
+        );
+
+        localStorage.setItem(
+          ownerKey,
+          JSON.stringify({
+            ...ownerData,
+            budgets: updatedBudgets,
+          }),
+        );
+      }
+    } catch (error) {
+      console.warn("Could not update original budget collaborators:", error);
+    }
+
+    return true;
+  };
+
   // Computed values
   const activeBudget = currentUser
     ? currentUser.budgets.find((b) => b.id === currentUser.activeBudgetId) ||
@@ -411,6 +504,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         deleteCategory,
         setUser,
         clearUser,
+        joinBudgetByCode,
+        findBudgetByCode,
       }}
     >
       {children}
