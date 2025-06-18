@@ -3,6 +3,23 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import CollaborationDialog from "@/components/collaboration/CollaborationDialog";
 import { useUserData } from "@/contexts/UserDataContext";
 import {
@@ -13,15 +30,32 @@ import {
   Calendar,
   Activity,
   Crown,
+  Trash2,
+  MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Collaboration() {
-  const { currentUser, activeBudget, entries } = useUserData();
+  const { currentUser, activeBudget, entries, deleteBudget } = useUserData();
+  const [deletingBudget, setDeletingBudget] = React.useState<string | null>(
+    null,
+  );
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast.success(`Código ${code} copiado para a área de transferência!`);
+  };
+
+  const handleDeleteBudget = (budgetId: string, budgetName: string) => {
+    const success = deleteBudget(budgetId);
+    if (success) {
+      toast.success(`Planilha "${budgetName}" excluída com sucesso!`);
+      setDeletingBudget(null);
+    } else {
+      toast.error(
+        "Não é possível excluir esta planilha. Deve haver pelo menos uma planilha ou não é possível excluir a planilha ativa.",
+      );
+    }
   };
 
   if (!currentUser) {
