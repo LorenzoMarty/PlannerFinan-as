@@ -25,7 +25,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { motion } from "framer-motion";
 
 interface LoginFormProps {
   onLogin: (email: string, password: string) => void;
@@ -113,12 +112,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     <div className="min-h-screen flex bg-gradient-to-br from-primary/10 via-background to-accent/10">
       {/* Left Side - Branding and Features */}
       <div className="hidden lg:flex lg:flex-1 lg:flex-col lg:justify-center lg:px-8 xl:px-12">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-md"
-        >
+        <div className="max-w-md">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center">
@@ -146,13 +140,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           {/* Features */}
           <div className="space-y-4">
             {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 + index * 0.1 }}
-                className="flex items-start gap-3"
-              >
+              <div key={feature.title} className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <feature.icon className="w-5 h-5 text-primary" />
                 </div>
@@ -164,17 +152,12 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                     {feature.description}
                   </p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
 
           {/* Trust indicators */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="mt-8 pt-8 border-t border-border"
-          >
+          <div className="mt-8 pt-8 border-t border-border">
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
@@ -185,18 +168,13 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 <span>100% Gratuito</span>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
 
       {/* Right Side - Login Form */}
       <div className="flex-1 flex items-center justify-center p-6 lg:max-w-md xl:max-w-lg">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="w-full max-w-md"
-        >
+        <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -485,12 +463,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           </Card>
 
           {/* Demo Access */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="mt-6 text-center"
-          >
+          <div className="mt-6 text-center">
             <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground mb-2">
@@ -510,8 +483,8 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 </Button>
               </CardContent>
             </Card>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
     </div>
   );
