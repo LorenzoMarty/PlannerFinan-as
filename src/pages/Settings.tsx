@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { useSettings } from "@/contexts/SettingsContext";
+import SettingsDemo from "@/components/demo/SettingsDemo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -151,6 +152,9 @@ export default function Settings() {
             </Button>
           </div>
         </div>
+
+        {/* Settings Demo */}
+        <SettingsDemo />
 
         <Tabs defaultValue="appearance" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
