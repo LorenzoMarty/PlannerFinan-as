@@ -145,66 +145,151 @@ export default function CategoryChart({ filteredEntries }: CategoryChartProps) {
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col xl:flex-row gap-6">
-          {/* Chart */}
-          <div className="flex-1 flex justify-center">
-            <ResponsiveContainer width="100%" height={300} minWidth={250}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={renderCustomizedLabel}
-                  outerRadius="80%"
-                  innerRadius="0%"
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
+      <CardContent className="p-3 sm:p-6">
+        {/* Mobile-first responsive layout */}
+        <div className="space-y-4 lg:space-y-6">
+          {/* Chart Container */}
+          <div className="w-full">
+            <div className="relative">
+              <ResponsiveContainer
+                width="100%"
+                height={250}
+                className="sm:!h-[300px] lg:!h-[350px]"
+              >
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={renderCustomizedLabel}
+                    outerRadius="75%"
+                    innerRadius="0%"
+                    fill="#8884d8"
+                    dataKey="value"
+                    className="drop-shadow-sm"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        stroke="white"
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+
+              {/* Chart center info - only on larger screens */}
+              <div className="absolute inset-0 hidden sm:flex items-center justify-center pointer-events-none">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-sm font-semibold">
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(total)}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Legend */}
-          <div className="xl:min-w-[200px] xl:max-w-[250px]">
-            <h4 className="font-medium text-sm mb-3">Categorias</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
+          {/* Legend - Fully responsive */}
+          <div className="w-full">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h4 className="font-semibold text-sm sm:text-base">Categorias</h4>
+              <div className="text-xs text-muted-foreground">
+                Total:{" "}
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(total)}
+              </div>
+            </div>
+
+            {/* Responsive grid for category items */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-2 sm:gap-3">
               {categoryData.map((item) => {
                 const percentage = ((item.value / total) * 100).toFixed(1);
                 return (
                   <div
                     key={item.name}
-                    className="flex items-center justify-between gap-3 p-2 rounded-lg bg-muted/30"
+                    className="group relative flex items-center justify-between gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <div
-                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0 ring-2 ring-white shadow-sm"
                         style={{ backgroundColor: item.color }}
                       />
-                      <span className="text-sm truncate font-medium">
-                        {item.name}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-xs sm:text-sm truncate font-medium block">
+                          {item.name}
+                        </span>
+                        <div className="sm:hidden text-xs text-muted-foreground">
+                          {percentage}%
+                        </div>
+                      </div>
                     </div>
+
                     <div className="text-right flex-shrink-0">
-                      <div className="text-sm font-semibold">
+                      <div className="text-xs sm:text-sm font-semibold">
                         {new Intl.NumberFormat("pt-BR", {
                           style: "currency",
                           currency: "BRL",
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
                         }).format(item.value)}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="hidden sm:block text-xs text-muted-foreground">
                         {percentage}%
                       </div>
                     </div>
+
+                    {/* Progress bar for mobile */}
+                    <div
+                      className="absolute bottom-0 left-0 h-0.5 bg-current opacity-20 transition-all group-hover:opacity-40"
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor: item.color,
+                      }}
+                    />
                   </div>
                 );
               })}
+            </div>
+
+            {/* Summary stats */}
+            <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Maior Gasto</p>
+                  <p className="text-sm font-semibold text-destructive">
+                    {categoryData.length > 0 && categoryData[0].name}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Categorias</p>
+                  <p className="text-sm font-semibold">{categoryData.length}</p>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <p className="text-xs text-muted-foreground">
+                    Média por Categoria
+                  </p>
+                  <p className="text-sm font-semibold">
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    }).format(
+                      categoryData.length > 0 ? total / categoryData.length : 0,
+                    )}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
