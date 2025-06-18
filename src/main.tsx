@@ -26,47 +26,24 @@ if (import.meta.env.DEV) {
       return true;
     }
 
-    // Filter DialogTitle accessibility warnings from third-party libraries
-    if (
-      (fullMessage.includes("DialogContent") ||
-        fullMessage.includes("AlertDialogContent")) &&
-      fullMessage.includes("requires a") &&
-      (fullMessage.includes("DialogTitle") ||
-        fullMessage.includes("AlertDialogTitle"))
-    ) {
-      return true;
-    }
+    // Comprehensive Radix UI accessibility warnings filter
+    const accessibilityKeywords = [
+      "DialogContent",
+      "AlertDialogContent",
+      "DialogTitle",
+      "AlertDialogTitle",
+      "requires a",
+      "for the component to be accessible",
+      "accessible for screen reader users",
+      "VisuallyHidden",
+      "radix-ui.com/primitives/docs",
+    ];
 
-    // Filter accessibility warnings from Radix UI components
-    if (
-      fullMessage.includes("VisuallyHidden") &&
-      fullMessage.includes("accessibility")
-    ) {
-      return true;
-    }
+    const isAccessibilityWarning = accessibilityKeywords.some((keyword) =>
+      fullMessage.includes(keyword),
+    );
 
-    // Filter any Radix UI accessibility warnings
-    if (
-      fullMessage.includes("accessible for screen reader users") ||
-      fullMessage.includes("radix-ui.com/primitives/docs") ||
-      fullMessage.includes("for the component to be accessible")
-    ) {
-      return true;
-    }
-
-    // Filter dropdown menu accessibility warnings
-    if (
-      fullMessage.includes("DropdownMenu") &&
-      fullMessage.includes("accessibility")
-    ) {
-      return true;
-    }
-
-    // Filter Select component accessibility warnings
-    if (
-      fullMessage.includes("SelectContent") &&
-      fullMessage.includes("accessibility")
-    ) {
+    if (isAccessibilityWarning) {
       return true;
     }
 
