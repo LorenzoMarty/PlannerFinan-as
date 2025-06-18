@@ -147,3 +147,66 @@
     background-color: hsl(var(--warning-foreground));
   }
 }
+
+/* Settings CSS Classes */
+.high-contrast {
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --ring: 0 0% 20%;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --muted: 0 0% 90%;
+  --muted-foreground: 0 0% 10%;
+}
+
+.dark.high-contrast {
+  --border: 0 0% 80%;
+  --input: 0 0% 80%;
+  --ring: 0 0% 80%;
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 90%;
+}
+
+.reduce-motion,
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+.large-buttons button,
+.large-buttons .button,
+.large-buttons [role="button"] {
+  padding: 0.875rem 1.5rem;
+  min-height: 3rem;
+  font-size: 1.125rem;
+}
+
+[data-layout="compact"] {
+  --spacing-unit: 0.75rem;
+}
+
+[data-layout="compact"] .p-4 {
+  padding: calc(var(--spacing-unit) * 0.75);
+}
+
+[data-layout="compact"] .p-6 {
+  padding: var(--spacing-unit);
+}
+
+[data-layout="spacious"] {
+  --spacing-unit: 2rem;
+}
+
+[data-layout="spacious"] .p-4 {
+  padding: calc(var(--spacing-unit) * 1.25);
+}
+
+[data-layout="spacious"] .p-6 {
+  padding: var(--spacing-unit);
+}
