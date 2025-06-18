@@ -165,31 +165,38 @@ export default function Dashboard() {
         {currentBudget && (
           <Card className="border-primary/20 bg-primary/5">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div>
-                    <h3 className="font-semibold">{currentBudget.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        Código: {currentBudget.code}
-                      </Badge>
-                      {currentBudget.collaborators.length > 0 && (
-                        <Badge variant="secondary" className="text-xs">
-                          <Users className="w-3 h-3 mr-1" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-lg truncate">
+                    {currentBudget.name}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <Badge variant="outline" className="text-xs">
+                      <span className="hidden sm:inline">Código: </span>
+                      {currentBudget.code}
+                    </Badge>
+                    {currentBudget.collaborators.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Users className="w-3 h-3 mr-1" />
+                        <span className="hidden sm:inline">
                           {currentBudget.collaborators.length} colaboradores
-                        </Badge>
-                      )}
-                    </div>
+                        </span>
+                        <span className="sm:hidden">
+                          {currentBudget.collaborators.length}
+                        </span>
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleShareBudget}
-                  className="gap-2"
+                  className="gap-2 shrink-0"
                 >
                   <Copy className="w-4 h-4" />
-                  Copiar Código
+                  <span className="hidden sm:inline">Copiar Código</span>
+                  <span className="sm:hidden">Copiar</span>
                 </Button>
               </div>
             </CardContent>
