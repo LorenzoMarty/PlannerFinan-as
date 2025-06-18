@@ -476,6 +476,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                     setEmail("demo@plannerfin.com");
                     setPassword("123456");
                     setActiveTab("login");
+                    // Auto-submit after a brief delay
+                    setTimeout(() => {
+                      onLogin("demo@plannerfin.com", "123456");
+                    }, 500);
                   }}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
