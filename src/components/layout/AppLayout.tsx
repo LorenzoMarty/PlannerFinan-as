@@ -50,11 +50,6 @@ const navigation = [
     icon: Users,
   },
   {
-    name: "Exportar",
-    href: "/export",
-    icon: FileDown,
-  },
-  {
     name: "Configurações",
     href: "/settings",
     icon: Settings,

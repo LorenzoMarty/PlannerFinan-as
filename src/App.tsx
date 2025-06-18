@@ -81,14 +81,6 @@ const App = () => {
                 }
               />
               <Route
-                path="/export"
-                element={
-                  <ProtectedRoute>
-                    <Analytics />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/settings"
                 element={
                   <ProtectedRoute>
