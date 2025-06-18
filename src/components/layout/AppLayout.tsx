@@ -1,5 +1,6 @@
 import React, { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useUserData } from "@/contexts/UserDataContext";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -64,37 +65,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { currentUser, clearUser } = useUserData();
 
-  // Get user from localStorage (in production, use proper auth context)
-  const [user, setUser] = useState(() => {
-    try {
-      return JSON.parse(
-        localStorage.getItem("plannerfinUser") ||
-          '{"name": "Usuário", "email": "user@example.com"}',
-      );
-    } catch {
-      return { name: "Usuário", email: "user@example.com" };
-    }
-  });
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      try {
-        const userData = localStorage.getItem("plannerfinUser");
-        if (userData) {
-          setUser(JSON.parse(userData));
-        }
-      } catch (error) {
-        console.error("Error loading user data:", error);
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  const user = currentUser || {
+    name: "Usuário",
+    email: "user@example.com",
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("plannerfinUser");
+    clearUser();
     navigate("/");
   };
 
