@@ -193,5 +193,22 @@ if (import.meta.env.DEV) {
     };
     return originalSetTimeout(wrappedCallback, ms);
   };
+
+  // One-time reset of demo data to load new fictional data
+  const resetDemoData = () => {
+    const demoUserId = btoa("demo@plannerfin.com");
+    const adminUserId = btoa("admin@plannerfin.com");
+    const joaoUserId = btoa("user@exemplo.com");
+
+    localStorage.removeItem(`plannerfinUserData_${demoUserId}`);
+    localStorage.removeItem(`plannerfinUserData_${adminUserId}`);
+    localStorage.removeItem(`plannerfinUserData_${joaoUserId}`);
+  };
+
+  // Reset demo data if not already done
+  if (!localStorage.getItem("demoDataReset_v2")) {
+    resetDemoData();
+    localStorage.setItem("demoDataReset_v2", "true");
+  }
 }
 createRoot(document.getElementById("root")!).render(<App />);
