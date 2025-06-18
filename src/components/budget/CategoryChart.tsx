@@ -125,10 +125,10 @@ export default function CategoryChart() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col xl:flex-row gap-6">
           {/* Chart */}
-          <div className="flex-1">
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="flex-1 flex justify-center">
+            <ResponsiveContainer width="100%" height={300} minWidth={250}>
               <PieChart>
                 <Pie
                   data={categoryData}
@@ -136,7 +136,8 @@ export default function CategoryChart() {
                   cy="50%"
                   labelLine={false}
                   label={renderCustomizedLabel}
-                  outerRadius={100}
+                  outerRadius="80%"
+                  innerRadius="0%"
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -150,36 +151,40 @@ export default function CategoryChart() {
           </div>
 
           {/* Legend */}
-          <div className="space-y-3 lg:min-w-[200px]">
-            <h4 className="font-medium text-sm">Categorias</h4>
-            {categoryData.map((item) => {
-              const percentage = ((item.value / total) * 100).toFixed(1);
-              return (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-sm truncate">{item.name}</span>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-medium">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      }).format(item.value)}
+          <div className="xl:min-w-[200px] xl:max-w-[250px]">
+            <h4 className="font-medium text-sm mb-3">Categorias</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
+              {categoryData.map((item) => {
+                const percentage = ((item.value / total) * 100).toFixed(1);
+                return (
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between gap-3 p-2 rounded-lg bg-muted/30"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-sm truncate font-medium">
+                        {item.name}
+                      </span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {percentage}%
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-sm font-semibold">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(item.value)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {percentage}%
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </CardContent>
