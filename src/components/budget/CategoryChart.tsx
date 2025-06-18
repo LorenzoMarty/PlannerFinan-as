@@ -24,12 +24,18 @@ const renderCustomizedLabel = ({
   innerRadius,
   outerRadius,
   percent,
+  viewBox,
 }: any) => {
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  // Don't show label for slices smaller than 8%
+  if (percent < 0.08) return null;
+
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.6;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-  if (percent < 0.05) return null; // Don't show label for slices smaller than 5%
+  // Adjust font size based on chart size
+  const isMobile = viewBox?.width < 300;
+  const fontSize = isMobile ? "10px" : "12px";
 
   return (
     <text
@@ -38,7 +44,8 @@ const renderCustomizedLabel = ({
       fill="white"
       textAnchor={x > cx ? "start" : "end"}
       dominantBaseline="central"
-      className="text-xs font-medium"
+      className="font-medium drop-shadow-sm"
+      style={{ fontSize }}
     >
       {`${(percent * 100).toFixed(0)}%`}
     </text>
