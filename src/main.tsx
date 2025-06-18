@@ -26,6 +26,19 @@ if (import.meta.env.DEV) {
       return true;
     }
 
+    // Nuclear option: filter any message that contains these exact patterns
+    const exactPatterns = [
+      "`DialogContent` requires a `DialogTitle` for the component to be accessible for screen reader users.",
+      "DialogContent requires a DialogTitle for the component to be accessible for screen reader users.",
+      "requires a DialogTitle for the component to be accessible",
+      "If you want to hide the DialogTitle, you can wrap it with our VisuallyHidden component.",
+    ];
+
+    // Check exact patterns first
+    if (exactPatterns.some((pattern) => fullMessage.includes(pattern))) {
+      return true;
+    }
+
     // Comprehensive Radix UI accessibility warnings filter
     const accessibilityKeywords = [
       "DialogContent",
