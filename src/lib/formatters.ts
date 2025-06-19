@@ -20,19 +20,39 @@ export const formatCurrency = (
 
 export const formatDate = (
   date: Date | string,
-  settings: UserSettings,
+  settings?: UserSettings,
 ): string => {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
+  // Handle string dates properly to avoid timezone issues
+  let dateObj: Date;
+
+  if (typeof date === "string") {
+    // If it's already in YYYY-MM-DD format, parse it as local date
+    if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = date.split("-").map(Number);
+      dateObj = new Date(year, month - 1, day); // month is 0-indexed
+    } else {
+      dateObj = new Date(date);
+    }
+  } else {
+    dateObj = date;
+  }
+
+  if (!settings) {
+    return dateObj.toLocaleDateString("pt-BR");
+  }
 
   if (settings.dateFormat === "DD/MM/YYYY") {
     return dateObj.toLocaleDateString("pt-BR");
   } else if (settings.dateFormat === "MM/DD/YYYY") {
     return dateObj.toLocaleDateString("en-US");
   } else if (settings.dateFormat === "YYYY-MM-DD") {
-    return dateObj.toISOString().split("T")[0];
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
-  return dateObj.toLocaleDateString();
+  return dateObj.toLocaleDateString("pt-BR");
 };
 
 export const formatNumber = (
