@@ -83,19 +83,17 @@ export default function ProfileManagementDialog({
   }, [profile, originalProfile]);
 
   const loadProfileData = () => {
-    const currentUser = JSON.parse(
-      localStorage.getItem("plannerfinUser") || "{}",
-    );
+    const authUser = JSON.parse(localStorage.getItem("plannerfinUser") || "{}");
 
     const profileData: UserProfile = {
-      name: currentUser.name || "",
-      email: currentUser.email || "",
-      bio: currentUser.bio || "",
-      avatar: currentUser.avatar || "",
-      phone: currentUser.phone || "",
-      location: currentUser.location || "",
-      joinedAt: currentUser.joinedAt || new Date().toISOString(),
-      lastLogin: currentUser.lastLogin || new Date().toISOString(),
+      name: currentUser?.name || authUser.name || "",
+      email: currentUser?.email || authUser.email || "",
+      bio: authUser.bio || "",
+      avatar: authUser.avatar || "",
+      phone: authUser.phone || "",
+      location: authUser.location || "",
+      joinedAt: authUser.joinedAt || new Date().toISOString(),
+      lastLogin: authUser.lastLogin || new Date().toISOString(),
     };
 
     setProfile(profileData);
