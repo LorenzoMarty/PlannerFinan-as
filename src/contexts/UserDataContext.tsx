@@ -401,13 +401,33 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   // Load user data on mount
   useEffect(() => {
-    const initializeUser = () => {
+    const initializeApp = async () => {
+      // Initialize Supabase if needed
+      if (useSupabase) {
+        console.log("Initializing Supabase...");
+        const connected = await SupabaseSetup.testConnection();
+        if (connected) {
+          await SupabaseSetup.ensureTablesExist();
+        } else {
+          console.warn(
+            "Supabase connection failed, falling back to localStorage",
+          );
+          setUseSupabase(false);
+        }
+      }
+
+      // Load user preference for storage mode
+      const savedMode = localStorage.getItem("plannerfinUseSupabase");
+      if (savedMode !== null) {
+        setUseSupabase(savedMode === "true");
+      }
+
       const authUser = localStorage.getItem("plannerfinUser");
       if (authUser) {
         try {
           const user = JSON.parse(authUser);
           if (user.authenticated) {
-            loadUserProfile(user);
+            await loadUserProfile(user);
           }
         } catch (error) {
           console.error("Error loading user:", error);
@@ -416,18 +436,28 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       }
     };
 
-    initializeUser();
+    initializeApp();
 
     // Listen for storage changes (when user logs in from another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "plannerfinUser") {
-        initializeUser();
+        const authUser = localStorage.getItem("plannerfinUser");
+        if (authUser) {
+          try {
+            const user = JSON.parse(authUser);
+            if (user.authenticated) {
+              loadUserProfile(user);
+            }
+          } catch (error) {
+            console.error("Error loading user:", error);
+          }
+        }
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
+  }, [useSupabase]);
 
   // Save user data whenever it changes with enhanced persistence
   useEffect(() => {
