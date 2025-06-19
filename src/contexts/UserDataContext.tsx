@@ -427,7 +427,10 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
     const interval = setInterval(
       () => {
-        DataStorage.createBackup(currentUser.id);
+        const success = DataStorage.createBackup(currentUser.id);
+        if (success) {
+          console.log("📦 Backup automático criado com sucesso");
+        }
       },
       10 * 60 * 1000,
     ); // 10 minutes
