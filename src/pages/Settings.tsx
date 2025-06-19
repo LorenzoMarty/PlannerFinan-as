@@ -41,7 +41,7 @@ import {
   Volume2,
   Eye,
   Clock,
-  CloudSync,
+  Cloud,
   HardDrive,
   Calendar,
   DollarSign,
@@ -940,7 +940,7 @@ export default function Settings() {
 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <CloudSync className="w-4 h-4 text-muted-foreground" />
+                        <Cloud className="w-4 h-4 text-muted-foreground" />
                         <div>
                           <Label className="text-base">
                             Sincronização em Nuvem
