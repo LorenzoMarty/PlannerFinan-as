@@ -55,6 +55,24 @@ export const SupabaseStatus: React.FC = () => {
     }
   };
 
+  const handleTestConnection = async () => {
+    const success = await testSupabaseConnection();
+    if (success) {
+      alert("Conexão com Supabase funcionando!");
+    } else {
+      alert("Erro na conexão com Supabase. Verifique o console.");
+    }
+  };
+
+  const handleTestUserCreation = async () => {
+    const success = await createTestUserProfile();
+    if (success) {
+      alert("Teste de criação de usuário bem-sucedido!");
+    } else {
+      alert("Erro no teste de criação de usuário. Verifique o console.");
+    }
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
