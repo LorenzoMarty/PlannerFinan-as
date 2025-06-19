@@ -196,8 +196,6 @@ export default function ProfileManagementDialog({
         }),
       );
 
-      console.log("Storage event dispatched");
-
       // Close dialog after successful update
       setTimeout(() => {
         setIsOpen(false);
