@@ -63,12 +63,12 @@ export default function ProfileManagementDialog({
   const [errors, setErrors] = useState<string[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Load profile data when dialog opens
+  // Load profile data when dialog opens or currentUser changes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && currentUser) {
       loadProfileData();
     }
-  }, [isOpen]);
+  }, [isOpen, currentUser]);
 
   // Check for changes
   useEffect(() => {
