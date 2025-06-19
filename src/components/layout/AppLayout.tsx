@@ -158,15 +158,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Mobile menu */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden fixed top-4 left-4 z-50"
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-        </SheetTrigger>
         <SheetContent side="left" className="p-0 w-72">
           <div className="bg-sidebar h-full">
             <Sidebar mobile />
