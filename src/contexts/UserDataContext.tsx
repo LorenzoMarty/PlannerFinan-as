@@ -640,7 +640,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       {
         id: generateEntryId(),
         date: generateDate(0),
-        description: "Salário Dezembro",
+        description: "Sal��rio Dezembro",
         category: "Salário",
         amount: 8500,
         type: "income" as const,
@@ -1237,28 +1237,43 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     localStorage.removeItem(`plannerfinUserData_${joaoUserId}`);
   };
 
-  const createBudget = (name: string): string => {
+  const createBudget = async (name: string): Promise<string> => {
     if (!currentUser) return "";
+    setIsLoading(true);
 
-    const newBudgetId = generateId();
-    const newBudget: Budget = {
-      id: newBudgetId,
-      name,
-      code: generateBudgetCode(),
-      ownerId: currentUser.id,
-      collaborators: [],
-      entries: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      const newBudgetId = SupabaseDataService.generateId();
+      const newBudget: Budget = {
+        id: newBudgetId,
+        name,
+        code: SupabaseDataService.generateBudgetCode(),
+        ownerId: currentUser.id,
+        collaborators: [],
+        entries: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    setCurrentUser({
-      ...currentUser,
-      budgets: [...currentUser.budgets, newBudget],
-      activeBudgetId: newBudgetId,
-    });
+      if (useSupabase) {
+        const success = await SupabaseDataService.createBudget(newBudget);
+        if (!success) {
+          throw new Error("Failed to create budget in Supabase");
+        }
+      }
 
-    return newBudgetId;
+      setCurrentUser({
+        ...currentUser,
+        budgets: [...currentUser.budgets, newBudget],
+        activeBudgetId: newBudgetId,
+      });
+
+      return newBudgetId;
+    } catch (error) {
+      console.error("Error creating budget:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const switchBudget = (budgetId: string) => {
