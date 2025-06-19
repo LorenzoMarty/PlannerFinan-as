@@ -99,8 +99,6 @@ export default function ProfileManagementDialog({
         lastLogin: authUser.lastLogin || new Date().toISOString(),
       };
 
-      console.log("Loading profile data:", profileData);
-
       setProfile(profileData);
       setOriginalProfile(profileData);
       setHasChanges(false);
