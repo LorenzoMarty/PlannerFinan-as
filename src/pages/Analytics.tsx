@@ -136,7 +136,14 @@ export default function Analytics() {
     const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
     const weeklyStats = daysOfWeek.map((day, index) => {
       const dayEntries = entries.filter((entry) => {
-        const entryDate = new Date(entry.date);
+        // Handle YYYY-MM-DD format to avoid timezone issues
+        let entryDate;
+        if (entry.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [year, month, day] = entry.date.split("-").map(Number);
+          entryDate = new Date(year, month - 1, day);
+        } else {
+          entryDate = new Date(entry.date + "T00:00:00");
+        }
         return entryDate.getDay() === index;
       });
 
