@@ -1652,6 +1652,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         activeBudget,
         categories,
         entries,
+        isLoading,
+        useSupabase,
         createBudget,
         switchBudget,
         deleteBudget,
@@ -1671,6 +1673,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         importUserData,
         createManualBackup,
         getStorageInfo,
+        migrateToSupabase,
+        toggleStorageMode,
       }}
     >
       {children}
