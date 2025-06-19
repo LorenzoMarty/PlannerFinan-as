@@ -131,9 +131,13 @@ export default function BudgetTable() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    deleteEntry(id);
-    toast.success("Lançamento excluído!");
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteEntry(id);
+      toast.success("Lançamento excluído!");
+    } catch (error) {
+      toast.error("Erro ao excluir lançamento");
+    }
   };
 
   const formatCurrency = (amount: number) => {
