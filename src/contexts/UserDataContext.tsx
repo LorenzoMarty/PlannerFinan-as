@@ -456,13 +456,56 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     return () => clearInterval(interval);
   }, [currentUser]);
 
-  const loadUserProfile = (authUser: any) => {
+  const loadUserProfile = async (authUser: any) => {
     const userId = btoa(authUser.email); // Simple ID generation
-    const existingData = DataStorage.loadUserData(userId);
+    setIsLoading(true);
 
-    if (existingData) {
-      setCurrentUser(existingData);
-      return;
+    try {
+      if (useSupabase) {
+        // Try to load from Supabase first
+        let supabaseData = await SupabaseDataService.getUserProfile(userId);
+
+        if (!supabaseData) {
+          // If no data in Supabase, check localStorage and migrate
+          const localData = DataStorage.loadUserData(userId);
+          if (localData) {
+            // Create user profile in Supabase
+            await SupabaseDataService.createUserProfile({
+              id: userId,
+              email: authUser.email,
+              name: authUser.name,
+            });
+
+            // Migrate data to Supabase
+            await SupabaseDataService.migrateFromLocalStorage(userId);
+
+            // Load the migrated data
+            supabaseData = await SupabaseDataService.getUserProfile(userId);
+          }
+        }
+
+        if (supabaseData) {
+          setCurrentUser(supabaseData);
+          return;
+        }
+      } else {
+        // Use localStorage
+        const existingData = DataStorage.loadUserData(userId);
+        if (existingData) {
+          setCurrentUser(existingData);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+      // Fallback to localStorage on error
+      const existingData = DataStorage.loadUserData(userId);
+      if (existingData) {
+        setCurrentUser(existingData);
+        return;
+      }
+    } finally {
+      setIsLoading(false);
     }
 
     // Check if it's a demo user and create appropriate data
