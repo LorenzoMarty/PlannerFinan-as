@@ -90,12 +90,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [currentUser]);
 
-  // Get user info from both currentUser and localStorage auth
-  const authUser = JSON.parse(localStorage.getItem("plannerfinUser") || "{}");
-  const user = {
-    name: currentUser?.name || authUser.name || "Usuário",
-    email: currentUser?.email || authUser.email || "user@example.com",
-    avatar: authUser.avatar,
+  const user = userInfo || {
+    name: "Usuário",
+    email: "user@example.com",
+    avatar: null,
   };
 
   const handleLogout = () => {
