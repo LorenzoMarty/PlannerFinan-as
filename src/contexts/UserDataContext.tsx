@@ -1539,6 +1539,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         updateCategory,
         deleteCategory,
         setUser,
+        updateProfile,
         clearUser,
         joinBudgetByCode,
         findBudgetByCode,
