@@ -283,43 +283,51 @@ interface UserDataContextType {
   activeBudget: Budget | null;
   categories: Category[];
   entries: BudgetEntry[];
+  isLoading: boolean;
+  useSupabase: boolean;
 
   // Budget operations
-  createBudget: (name: string) => string;
+  createBudget: (name: string) => Promise<string>;
   switchBudget: (budgetId: string) => void;
-  deleteBudget: (budgetId: string) => boolean;
+  deleteBudget: (budgetId: string) => Promise<boolean>;
 
   // Entry operations
-  addEntry: (entry: Omit<BudgetEntry, "id" | "userId" | "budgetId">) => void;
-  updateEntry: (id: string, updates: Partial<BudgetEntry>) => void;
-  deleteEntry: (id: string) => void;
+  addEntry: (
+    entry: Omit<BudgetEntry, "id" | "userId" | "budgetId">,
+  ) => Promise<void>;
+  updateEntry: (id: string, updates: Partial<BudgetEntry>) => Promise<void>;
+  deleteEntry: (id: string) => Promise<void>;
 
   // Category operations
-  addCategory: (category: Omit<Category, "id" | "userId">) => void;
-  updateCategory: (id: string, updates: Partial<Category>) => void;
-  deleteCategory: (id: string) => void;
+  addCategory: (category: Omit<Category, "id" | "userId">) => Promise<void>;
+  updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
 
   // User operations
-  setUser: (user: { email: string; name: string }) => void;
+  setUser: (user: { email: string; name: string }) => Promise<void>;
   updateProfile: (updates: {
     name?: string;
     bio?: string;
     phone?: string;
     location?: string;
     avatar?: string;
-  }) => void;
+  }) => Promise<void>;
   clearUser: () => void;
 
   // Collaboration operations
   joinBudgetByCode: (code: string) => Promise<boolean>;
-  findBudgetByCode: (code: string) => Budget | null;
-  leaveBudgetAsCollaborator: (budgetId: string) => boolean;
+  findBudgetByCode: (code: string) => Promise<Budget | null>;
+  leaveBudgetAsCollaborator: (budgetId: string) => Promise<boolean>;
 
   // Data management operations
   exportUserData: () => string;
   importUserData: (jsonData: string) => boolean;
   createManualBackup: () => boolean;
   getStorageInfo: () => { used: number; total: number; available: number };
+
+  // Migration operations
+  migrateToSupabase: () => Promise<boolean>;
+  toggleStorageMode: () => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(
@@ -539,7 +547,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         name: "Vendas",
         type: "income" as const,
         color: "#3b82f6",
-        icon: "����",
+        icon: "💼",
         description: "Vendas online e serviços",
         userId,
       },
