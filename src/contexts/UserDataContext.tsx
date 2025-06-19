@@ -640,7 +640,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       {
         id: generateEntryId(),
         date: generateDate(0),
-        description: "Sal��rio Dezembro",
+        description: "Salário Dezembro",
         category: "Salário",
         amount: 8500,
         type: "income" as const,
@@ -1602,6 +1602,38 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   const getStorageInfo = () => {
     return DataStorage.getStorageInfo();
+  };
+
+  const migrateToSupabase = async (): Promise<boolean> => {
+    if (!currentUser) return false;
+    setIsLoading(true);
+
+    try {
+      const success = await SupabaseDataService.migrateFromLocalStorage(
+        currentUser.id,
+      );
+      if (success) {
+        setUseSupabase(true);
+        localStorage.setItem("plannerfinUseSupabase", "true");
+        // Reload user data from Supabase
+        const authUser = JSON.parse(
+          localStorage.getItem("plannerfinUser") || "{}",
+        );
+        await loadUserProfile(authUser);
+      }
+      return success;
+    } catch (error) {
+      console.error("Error migrating to Supabase:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleStorageMode = () => {
+    const newMode = !useSupabase;
+    setUseSupabase(newMode);
+    localStorage.setItem("plannerfinUseSupabase", newMode.toString());
   };
 
   // Computed values
