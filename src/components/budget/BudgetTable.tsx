@@ -104,13 +104,18 @@ export default function BudgetTable() {
 
     // Ensure date is in YYYY-MM-DD format for the input
     let dateValue = entry.date;
-    if (
-      typeof entry.date === "string" &&
-      !entry.date.match(/^\d{4}-\d{2}-\d{2}$/)
-    ) {
-      // If it's not in YYYY-MM-DD format, convert it
-      const dateObj = new Date(entry.date);
-      dateValue = dateObj.toISOString().split("T")[0];
+    if (typeof entry.date === "string") {
+      if (entry.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Already in correct format
+        dateValue = entry.date;
+      } else {
+        // Convert to YYYY-MM-DD format avoiding timezone issues
+        const dateObj = new Date(entry.date + "T00:00:00");
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        dateValue = `${year}-${month}-${day}`;
+      }
     }
 
     setFormData({
