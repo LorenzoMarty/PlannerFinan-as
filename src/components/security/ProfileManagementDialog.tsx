@@ -183,12 +183,18 @@ export default function ProfileManagementDialog({
       );
       if (userData) {
         const parsedUserData = JSON.parse(userData);
+        // Update all profile fields in UserDataContext
         parsedUserData.name = profile.name;
+        parsedUserData.email = profile.email;
+
         localStorage.setItem(
           `plannerfinUserData_${currentUser.id}`,
           JSON.stringify(parsedUserData),
         );
       }
+
+      // Force a page reload to update the UserDataContext
+      window.location.reload();
 
       setOriginalProfile(profile);
       setHasChanges(false);
