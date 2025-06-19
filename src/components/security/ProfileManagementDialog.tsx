@@ -442,6 +442,15 @@ export default function ProfileManagementDialog({
                 Cancelar
               </Button>
             )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={loadProfileData}
+              disabled={isLoading}
+            >
+              Recarregar
+            </Button>
           </div>
 
           {hasChanges && (
