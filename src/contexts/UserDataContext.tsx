@@ -1107,6 +1107,44 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     loadUserProfile(user);
   };
 
+  const updateProfile = (updates: {
+    name?: string;
+    bio?: string;
+    phone?: string;
+    location?: string;
+    avatar?: string;
+  }) => {
+    if (!currentUser) return;
+
+    // Update current user profile
+    const updatedUser = {
+      ...currentUser,
+      name: updates.name ?? currentUser.name,
+    };
+
+    // Update localStorage auth data
+    const authUser = localStorage.getItem("plannerfinUser");
+    if (authUser) {
+      try {
+        const parsed = JSON.parse(authUser);
+        const updatedAuth = {
+          ...parsed,
+          name: updates.name ?? parsed.name,
+          bio: updates.bio ?? parsed.bio,
+          phone: updates.phone ?? parsed.phone,
+          location: updates.location ?? parsed.location,
+          avatar: updates.avatar ?? parsed.avatar,
+          updatedAt: new Date().toISOString(),
+        };
+        localStorage.setItem("plannerfinUser", JSON.stringify(updatedAuth));
+      } catch (error) {
+        console.error("Error updating auth user:", error);
+      }
+    }
+
+    setCurrentUser(updatedUser);
+  };
+
   const clearUser = () => {
     setCurrentUser(null);
   };
