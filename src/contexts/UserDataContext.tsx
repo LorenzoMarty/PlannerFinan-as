@@ -306,6 +306,12 @@ interface UserDataContextType {
   joinBudgetByCode: (code: string) => Promise<boolean>;
   findBudgetByCode: (code: string) => Budget | null;
   leaveBudgetAsCollaborator: (budgetId: string) => boolean;
+
+  // Data management operations
+  exportUserData: () => string;
+  importUserData: (jsonData: string) => boolean;
+  createManualBackup: () => boolean;
+  getStorageInfo: () => { used: number; total: number; available: number };
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(
