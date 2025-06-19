@@ -163,50 +163,32 @@ export default function ProfileManagementDialog({
 
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      const currentUser = JSON.parse(
-        localStorage.getItem("plannerfinUser") || "{}",
-      );
-
-      const updatedUser = {
-        ...currentUser,
-        ...profile,
-        updatedAt: new Date().toISOString(),
-      };
-
-      localStorage.setItem("plannerfinUser", JSON.stringify(updatedUser));
-
-      // Update user data in UserDataContext as well
-      const userData = localStorage.getItem(
-        `plannerfinUserData_${currentUser.id}`,
-      );
-      if (userData) {
-        const parsedUserData = JSON.parse(userData);
-        // Update all profile fields in UserDataContext
-        parsedUserData.name = profile.name;
-        parsedUserData.email = profile.email;
-
-        localStorage.setItem(
-          `plannerfinUserData_${currentUser.id}`,
-          JSON.stringify(parsedUserData),
-        );
-      }
-
-      // Update UserDataContext with new profile information
-      setUser({
-        email: profile.email,
+    try {
+      // Use updateProfile from context to handle all updates
+      updateProfile({
         name: profile.name,
+        bio: profile.bio,
+        phone: profile.phone,
+        location: profile.location,
+        avatar: profile.avatar,
       });
 
-      // Trigger profile reload to reflect changes
-      loadProfileData();
-
-      setOriginalProfile(profile);
+      // Update local state
+      setOriginalProfile({ ...profile });
       setHasChanges(false);
-      setIsLoading(false);
+
       toast.success("Perfil atualizado com sucesso!");
-    }, 1500);
+
+      // Close dialog after successful update
+      setTimeout(() => {
+        setIsOpen(false);
+      }, 1000);
+    } catch (error) {
+      toast.error("Erro ao atualizar perfil. Tente novamente.");
+      setErrors(["Erro ao salvar as alterações. Tente novamente."]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
