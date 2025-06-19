@@ -58,7 +58,7 @@ export default function BudgetTable() {
 
   const balance = totalIncome - totalExpenses;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const amount = parseFloat(formData.amount);
@@ -76,15 +76,18 @@ export default function BudgetTable() {
       type: formData.type,
     };
 
-    if (editingEntry) {
-      updateEntry(editingEntry.id, entryData);
-      toast.success("Lançamento atualizado!");
-    } else {
-      addEntry(entryData);
-      toast.success("Lançamento adicionado!");
+    try {
+      if (editingEntry) {
+        await updateEntry(editingEntry.id, entryData);
+        toast.success("Lançamento atualizado!");
+      } else {
+        await addEntry(entryData);
+        toast.success("Lançamento adicionado!");
+      }
+      resetForm();
+    } catch (error) {
+      toast.error("Erro ao salvar lançamento");
     }
-
-    resetForm();
   };
 
   const resetForm = () => {
