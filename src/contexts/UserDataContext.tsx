@@ -5,6 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { SupabaseDataService } from "@/services/SupabaseDataService";
 
 // Data versioning for migrations
 const CURRENT_DATA_VERSION = "1.0.0";
@@ -538,7 +539,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         name: "Vendas",
         type: "income" as const,
         color: "#3b82f6",
-        icon: "💼",
+        icon: "����",
         description: "Vendas online e serviços",
         userId,
       },
