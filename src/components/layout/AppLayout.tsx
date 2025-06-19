@@ -176,7 +176,26 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main content */}
       <div className="lg:pl-72">
-        <main className="min-h-screen">{children}</main>
+        {/* Header */}
+        <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 border-b border-border">
+          <div className="flex h-14 items-center justify-between px-4 lg:px-6">
+            <div className="flex items-center gap-2 lg:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(true)}
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="flex-1" />
+            <div className="flex items-center gap-2">
+              <BackupStatusIndicator />
+            </div>
+          </div>
+        </header>
+
+        <main className="min-h-[calc(100vh-3.5rem)]">{children}</main>
       </div>
     </div>
   );
