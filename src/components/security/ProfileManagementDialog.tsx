@@ -312,6 +312,11 @@ export default function ProfileManagementDialog({
               Clique na câmera para alterar a foto de perfil
               <br />
               Máximo 2MB - JPG, PNG ou GIF
+              {profile.avatar && profile.avatar !== originalProfile?.avatar && (
+                <span className="text-success block mt-1">
+                  ✓ Nova imagem carregada
+                </span>
+              )}
             </p>
           </div>
 
