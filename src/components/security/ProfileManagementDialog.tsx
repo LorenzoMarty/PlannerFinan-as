@@ -133,7 +133,11 @@ export default function ProfileManagementDialog({
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
-        setProfile((prev) => ({ ...prev, avatar: result }));
+        setProfile((prev) => {
+          const newProfile = { ...prev, avatar: result };
+          console.log("Avatar updated:", result.substring(0, 50) + "...");
+          return newProfile;
+        });
         setErrors([]);
       };
       reader.readAsDataURL(file);
