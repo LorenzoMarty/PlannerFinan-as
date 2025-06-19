@@ -216,7 +216,7 @@ export default function ProfileManagementDialog({
 
   const resetForm = () => {
     if (originalProfile) {
-      setProfile(originalProfile);
+      setProfile({ ...originalProfile });
     }
     setErrors([]);
     setHasChanges(false);
