@@ -44,7 +44,7 @@ interface UserProfile {
 export default function ProfileManagementDialog({
   trigger,
 }: ProfileManagementDialogProps) {
-  const { setUser } = useUserData();
+  const { updateProfile, currentUser } = useUserData();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<UserProfile>({
