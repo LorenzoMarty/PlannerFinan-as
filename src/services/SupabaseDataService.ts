@@ -47,6 +47,8 @@ export class SupabaseDataService {
 
   static async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
+      console.log("Getting user profile for:", userId);
+
       // Get user profile
       const { data: profile, error: profileError } = await supabase
         .from("user_profiles")
@@ -54,10 +56,19 @@ export class SupabaseDataService {
         .eq("id", userId)
         .single();
 
-      if (profileError || !profile) {
+      if (profileError) {
         console.error("Error getting user profile:", profileError);
+        console.error("Error code:", profileError.code);
+        console.error("Error message:", profileError.message);
         return null;
       }
+
+      if (!profile) {
+        console.log("No profile found for user:", userId);
+        return null;
+      }
+
+      console.log("Profile found:", profile);
 
       // Get user budgets
       const { data: budgets, error: budgetsError } = await supabase
