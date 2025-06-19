@@ -61,7 +61,34 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userInfo, setUserInfo] = useState<any>(null);
   const { currentUser, clearUser } = useUserData();
+
+  // Update user info when currentUser changes or storage changes
+  useEffect(() => {
+    const updateUserInfo = () => {
+      const authUser = JSON.parse(
+        localStorage.getItem("plannerfinUser") || "{}",
+      );
+      setUserInfo({
+        name: currentUser?.name || authUser.name || "Usuário",
+        email: currentUser?.email || authUser.email || "user@example.com",
+        avatar: authUser.avatar,
+      });
+    };
+
+    updateUserInfo();
+
+    // Listen for storage changes (when profile is updated)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "plannerfinUser") {
+        updateUserInfo();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [currentUser]);
 
   // Get user info from both currentUser and localStorage auth
   const authUser = JSON.parse(localStorage.getItem("plannerfinUser") || "{}");
