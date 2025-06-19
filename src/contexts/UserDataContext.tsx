@@ -300,6 +300,13 @@ interface UserDataContextType {
 
   // User operations
   setUser: (user: { email: string; name: string }) => void;
+  updateProfile: (updates: {
+    name?: string;
+    bio?: string;
+    phone?: string;
+    location?: string;
+    avatar?: string;
+  }) => void;
   clearUser: () => void;
 
   // Collaboration operations
