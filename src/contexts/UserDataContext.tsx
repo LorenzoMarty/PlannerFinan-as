@@ -1161,7 +1161,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     await loadUserProfile(user);
   };
 
-  const updateProfile = (updates: {
+  const updateProfile = async (updates: {
     name?: string;
     bio?: string;
     phone?: string;
@@ -1169,17 +1169,29 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     avatar?: string;
   }) => {
     if (!currentUser) return;
+    setIsLoading(true);
 
-    // Update current user profile in UserDataContext
-    const updatedUser = {
-      ...currentUser,
-      name: updates.name ?? currentUser.name,
-    };
+    try {
+      if (useSupabase) {
+        // Update in Supabase
+        const success = await SupabaseDataService.updateUserProfile(
+          currentUser.id,
+          updates,
+        );
+        if (!success) {
+          throw new Error("Failed to update profile in Supabase");
+        }
+      }
 
-    // Update localStorage auth data
-    const authUser = localStorage.getItem("plannerfinUser");
-    if (authUser) {
-      try {
+      // Update current user profile in UserDataContext
+      const updatedUser = {
+        ...currentUser,
+        name: updates.name ?? currentUser.name,
+      };
+
+      // Update localStorage auth data
+      const authUser = localStorage.getItem("plannerfinUser");
+      if (authUser) {
         const parsed = JSON.parse(authUser);
         const updatedAuth = {
           ...parsed,
@@ -1192,20 +1204,23 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         };
         localStorage.setItem("plannerfinUser", JSON.stringify(updatedAuth));
 
-        // Also save to user data storage for persistence
-        const success = DataStorage.saveUserData(currentUser.id, updatedUser);
-        if (!success) {
-          console.warn("Failed to save user profile data");
+        if (!useSupabase) {
+          // Also save to user data storage for persistence
+          const success = DataStorage.saveUserData(currentUser.id, updatedUser);
+          if (!success) {
+            console.warn("Failed to save user profile data");
+          }
         }
-      } catch (error) {
-        console.error("Error updating auth user:", error);
-        throw error;
       }
+
+      setCurrentUser(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-
-    setCurrentUser(updatedUser);
   };
-
   const clearUser = () => {
     setCurrentUser(null);
   };
