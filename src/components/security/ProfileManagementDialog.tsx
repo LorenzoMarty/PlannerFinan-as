@@ -24,6 +24,7 @@ import {
   Camera,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useUserData } from "@/contexts/UserDataContext";
 
 interface ProfileManagementDialogProps {
   trigger?: React.ReactNode;
@@ -43,6 +44,7 @@ interface UserProfile {
 export default function ProfileManagementDialog({
   trigger,
 }: ProfileManagementDialogProps) {
+  const { setUser } = useUserData();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<UserProfile>({
@@ -193,8 +195,14 @@ export default function ProfileManagementDialog({
         );
       }
 
-      // Force a page reload to update the UserDataContext
-      window.location.reload();
+      // Update UserDataContext with new profile information
+      setUser({
+        email: profile.email,
+        name: profile.name,
+      });
+
+      // Trigger profile reload to reflect changes
+      loadProfileData();
 
       setOriginalProfile(profile);
       setHasChanges(false);
