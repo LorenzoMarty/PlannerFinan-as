@@ -13,7 +13,19 @@ export class SupabaseDataService {
     profile: Omit<UserProfile, "budgets" | "categories" | "activeBudgetId">,
   ): Promise<boolean> {
     try {
-      const { error } = await supabase.from("user_profiles").insert({
+      // Check if profile already exists
+      const { data: existing } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("id", profile.id)
+        .single();
+
+      if (existing) {
+        console.log("User profile already exists");
+        return true;
+      }
+
+      const { data, error } = await supabase.from("user_profiles").insert({
         id: profile.id,
         email: profile.email,
         name: profile.name,
@@ -21,9 +33,11 @@ export class SupabaseDataService {
 
       if (error) {
         console.error("Error creating user profile:", error);
+        console.error("Error details:", error.message, error.code);
         return false;
       }
 
+      console.log("User profile created successfully:", data);
       return true;
     } catch (error) {
       console.error("Error in createUserProfile:", error);
