@@ -101,8 +101,20 @@ export default function BudgetTable() {
 
   const handleEdit = (entry: BudgetEntry) => {
     setEditingEntry(entry);
+
+    // Ensure date is in YYYY-MM-DD format for the input
+    let dateValue = entry.date;
+    if (
+      typeof entry.date === "string" &&
+      !entry.date.match(/^\d{4}-\d{2}-\d{2}$/)
+    ) {
+      // If it's not in YYYY-MM-DD format, convert it
+      const dateObj = new Date(entry.date);
+      dateValue = dateObj.toISOString().split("T")[0];
+    }
+
     setFormData({
-      date: entry.date,
+      date: dateValue,
       description: entry.description,
       category: entry.category,
       amount: Math.abs(entry.amount).toString(),
