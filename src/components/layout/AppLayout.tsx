@@ -63,9 +63,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, clearUser } = useUserData();
 
-  const user = currentUser || {
-    name: "Usuário",
-    email: "user@example.com",
+  // Get user info from both currentUser and localStorage auth
+  const authUser = JSON.parse(localStorage.getItem("plannerfinUser") || "{}");
+  const user = {
+    name: currentUser?.name || authUser.name || "Usuário",
+    email: currentUser?.email || authUser.email || "user@example.com",
+    avatar: authUser.avatar,
   };
 
   const handleLogout = () => {
