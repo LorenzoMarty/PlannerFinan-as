@@ -40,6 +40,11 @@ import {
   Accessibility,
   Volume2,
   Eye,
+  Clock,
+  CloudSync,
+  HardDrive,
+  Calendar,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -807,35 +812,57 @@ export default function Settings() {
                     <div className="space-y-4 p-4 bg-muted rounded-lg">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <Label className="text-sm text-muted-foreground">
+                          <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
                             Data de Hoje
                           </Label>
                           <p className="font-medium">
-                            {settings.dateFormat === "DD/MM/YYYY" &&
-                              "15/12/2024"}
-                            {settings.dateFormat === "MM/DD/YYYY" &&
-                              "12/15/2024"}
-                            {settings.dateFormat === "YYYY-MM-DD" &&
-                              "2024-12-15"}
+                            {(() => {
+                              const today = new Date();
+                              if (settings.dateFormat === "DD/MM/YYYY") {
+                                return today.toLocaleDateString("pt-BR");
+                              } else if (settings.dateFormat === "MM/DD/YYYY") {
+                                return today.toLocaleDateString("en-US");
+                              } else {
+                                return today.toISOString().split("T")[0];
+                              }
+                            })()}
                           </p>
                         </div>
 
                         <div>
-                          <Label className="text-sm text-muted-foreground">
+                          <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
                             Valor de Exemplo
                           </Label>
                           <p className="font-medium">
-                            {settings.currency === "BRL" && "R$ "}
-                            {settings.currency === "USD" && "$ "}
-                            {settings.currency === "EUR" && "€ "}
-                            {settings.numberFormat === "1.234,56" && "1.234,56"}
-                            {settings.numberFormat === "1,234.56" && "1,234.56"}
-                            {settings.numberFormat === "1 234,56" && "1 234,56"}
+                            {(() => {
+                              const value = 1234.56;
+                              let formatted = "";
+
+                              if (settings.numberFormat === "1.234,56") {
+                                formatted = value.toLocaleString("pt-BR");
+                              } else if (settings.numberFormat === "1,234.56") {
+                                formatted = value.toLocaleString("en-US");
+                              } else {
+                                formatted = value.toLocaleString("fr-FR");
+                              }
+
+                              const currency =
+                                settings.currency === "BRL"
+                                  ? "R$ "
+                                  : settings.currency === "USD"
+                                    ? "$ "
+                                    : "€ ";
+
+                              return currency + formatted;
+                            })()}
                           </p>
                         </div>
 
                         <div>
-                          <Label className="text-sm text-muted-foreground">
+                          <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Palette className="w-3 h-3" />
                             Tema Atual
                           </Label>
                           <div className="flex items-center gap-2">
@@ -853,7 +880,8 @@ export default function Settings() {
                         </div>
 
                         <div>
-                          <Label className="text-sm text-muted-foreground">
+                          <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Globe className="w-3 h-3" />
                             Idioma/Região
                           </Label>
                           <p className="font-medium">
@@ -866,7 +894,8 @@ export default function Settings() {
                       </div>
 
                       <div className="pt-3 border-t">
-                        <Label className="text-sm text-muted-foreground">
+                        <Label className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
                           Horário Local
                         </Label>
                         <p className="font-medium">
@@ -884,17 +913,20 @@ export default function Settings() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Settings className="w-5 h-5" />
+                      <SettingsIcon className="w-5 h-5" />
                       Configurações Avançadas
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-base">Backup Automático</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Fazer backup dos dados automaticamente
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <HardDrive className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-base">Backup Automático</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Fazer backup dos dados automaticamente
+                          </p>
+                        </div>
                       </div>
                       <Switch
                         checked={true}
@@ -904,14 +936,19 @@ export default function Settings() {
                       />
                     </div>
 
+                    <Separator />
+
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-base">
-                          Sincronização em Nuvem
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Sincronizar dados entre dispositivos
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <CloudSync className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-base">
+                            Sincronização em Nuvem
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Sincronizar dados entre dispositivos
+                          </p>
+                        </div>
                       </div>
                       <Switch
                         checked={false}
@@ -921,14 +958,19 @@ export default function Settings() {
                       />
                     </div>
 
+                    <Separator />
+
                     <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-base">
-                          Compactação de Dados
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Reduzir espaço de armazenamento
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <Database className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-base">
+                            Compactação de Dados
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Reduzir espaço de armazenamento
+                          </p>
+                        </div>
                       </div>
                       <Switch
                         checked={true}
@@ -939,7 +981,11 @@ export default function Settings() {
                     </div>
 
                     <div className="pt-4 border-t">
-                      <Button variant="outline" className="w-full">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleExportSettings}
+                      >
                         <Download className="w-4 h-4 mr-2" />
                         Exportar Todas as Configurações
                       </Button>
