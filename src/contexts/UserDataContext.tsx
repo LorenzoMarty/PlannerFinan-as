@@ -1157,8 +1157,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const generateBudgetCode = () =>
     "PF" + Math.random().toString(36).substr(2, 6).toUpperCase();
 
-  const setUser = (user: { email: string; name: string }) => {
-    loadUserProfile(user);
+  const setUser = async (user: { email: string; name: string }) => {
+    await loadUserProfile(user);
   };
 
   const updateProfile = (updates: {
