@@ -410,14 +410,29 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Save user data whenever it changes
+  // Save user data whenever it changes with enhanced persistence
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem(
-        `plannerfinUserData_${currentUser.id}`,
-        JSON.stringify(currentUser),
-      );
+      const success = DataStorage.saveUserData(currentUser.id, currentUser);
+      if (!success) {
+        console.warn("Failed to save user data to localStorage");
+        // Could show a toast notification here
+      }
     }
+  }, [currentUser]);
+
+  // Auto-backup every 10 minutes
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const interval = setInterval(
+      () => {
+        DataStorage.createBackup(currentUser.id);
+      },
+      10 * 60 * 1000,
+    ); // 10 minutes
+
+    return () => clearInterval(interval);
   }, [currentUser]);
 
   const loadUserProfile = (authUser: any) => {
