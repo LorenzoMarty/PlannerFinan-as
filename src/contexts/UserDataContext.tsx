@@ -437,16 +437,11 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   const loadUserProfile = (authUser: any) => {
     const userId = btoa(authUser.email); // Simple ID generation
-    const existingData = localStorage.getItem(`plannerfinUserData_${userId}`);
+    const existingData = DataStorage.loadUserData(userId);
 
     if (existingData) {
-      try {
-        const userData = JSON.parse(existingData);
-        setCurrentUser(userData);
-        return;
-      } catch (error) {
-        console.error("Error loading user data:", error);
-      }
+      setCurrentUser(existingData);
+      return;
     }
 
     // Check if it's a demo user and create appropriate data
