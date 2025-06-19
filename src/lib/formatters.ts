@@ -18,7 +18,13 @@ export const formatCurrency = (
   }).format(amount);
 };
 
-export const formatDate = (
+// Simple date formatter without settings (for backwards compatibility)
+export const formatDate = (date: Date | string): string => {
+  return formatDateWithSettings(date);
+};
+
+// Full date formatter with settings
+export const formatDateWithSettings = (
   date: Date | string,
   settings?: UserSettings,
 ): string => {
