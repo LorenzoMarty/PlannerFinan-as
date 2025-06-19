@@ -6,6 +6,236 @@ import React, {
   ReactNode,
 } from "react";
 
+// Data versioning for migrations
+const CURRENT_DATA_VERSION = "1.0.0";
+
+// Storage utilities for robust data persistence
+class DataStorage {
+  private static prefix = "plannerfinUserData_";
+  private static settingsPrefix = "plannerfinSettings";
+  private static backupPrefix = "plannerfinBackup_";
+
+  static saveUserData(userId: string, data: UserProfile): boolean {
+    try {
+      const dataWithVersion = {
+        ...data,
+        __version: CURRENT_DATA_VERSION,
+        __lastSaved: new Date().toISOString(),
+      };
+
+      const serialized = JSON.stringify(dataWithVersion);
+
+      // Create backup before saving new data
+      this.createBackup(userId);
+
+      // Save main data
+      localStorage.setItem(`${this.prefix}${userId}`, serialized);
+
+      // Update metadata
+      this.updateStorageMetadata();
+
+      return true;
+    } catch (error) {
+      console.error("Error saving user data:", error);
+      return false;
+    }
+  }
+
+  static loadUserData(userId: string): UserProfile | null {
+    try {
+      const stored = localStorage.getItem(`${this.prefix}${userId}`);
+      if (!stored) return null;
+
+      const parsed = JSON.parse(stored);
+
+      // Version migration (if needed in the future)
+      const migrated = this.migrateDataIfNeeded(parsed);
+
+      // Remove version metadata from returned data
+      const { __version, __lastSaved, ...userData } = migrated;
+
+      return userData as UserProfile;
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      // Try to recover from backup
+      return this.recoverFromBackup(userId);
+    }
+  }
+
+  static createBackup(userId: string): boolean {
+    try {
+      const existing = localStorage.getItem(`${this.prefix}${userId}`);
+      if (!existing) return false;
+
+      const backupKey = `${this.backupPrefix}${userId}_${Date.now()}`;
+      localStorage.setItem(backupKey, existing);
+
+      // Keep only last 5 backups per user
+      this.cleanupOldBackups(userId);
+
+      return true;
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      return false;
+    }
+  }
+
+  static recoverFromBackup(userId: string): UserProfile | null {
+    try {
+      const backupKeys = Object.keys(localStorage)
+        .filter((key) => key.startsWith(`${this.backupPrefix}${userId}_`))
+        .sort()
+        .reverse(); // Most recent first
+
+      for (const key of backupKeys) {
+        try {
+          const backup = localStorage.getItem(key);
+          if (backup) {
+            const parsed = JSON.parse(backup);
+            const { __version, __lastSaved, ...userData } = parsed;
+            console.log(`Recovered data from backup: ${key}`);
+            return userData as UserProfile;
+          }
+        } catch (backupError) {
+          continue; // Try next backup
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error recovering from backup:", error);
+      return null;
+    }
+  }
+
+  static cleanupOldBackups(userId: string): void {
+    try {
+      const backupKeys = Object.keys(localStorage)
+        .filter((key) => key.startsWith(`${this.backupPrefix}${userId}_`))
+        .sort()
+        .reverse();
+
+      // Keep only last 5 backups
+      const toDelete = backupKeys.slice(5);
+      toDelete.forEach((key) => {
+        localStorage.removeItem(key);
+      });
+    } catch (error) {
+      console.error("Error cleaning up backups:", error);
+    }
+  }
+
+  static updateStorageMetadata(): void {
+    try {
+      const metadata = {
+        lastUpdated: new Date().toISOString(),
+        dataVersion: CURRENT_DATA_VERSION,
+        userCount: Object.keys(localStorage).filter((key) =>
+          key.startsWith(this.prefix),
+        ).length,
+      };
+
+      localStorage.setItem("plannerfinMetadata", JSON.stringify(metadata));
+    } catch (error) {
+      console.error("Error updating metadata:", error);
+    }
+  }
+
+  static migrateDataIfNeeded(data: any): any {
+    if (!data.__version) {
+      // Migrate from version 0 (no version) to current
+      return {
+        ...data,
+        __version: CURRENT_DATA_VERSION,
+      };
+    }
+
+    // Future migrations would go here
+    return data;
+  }
+
+  static exportAllData(): string {
+    try {
+      const allData: any = {};
+
+      // Export all user data
+      Object.keys(localStorage).forEach((key) => {
+        if (
+          key.startsWith(this.prefix) ||
+          key === this.settingsPrefix ||
+          key === "plannerfinMetadata"
+        ) {
+          allData[key] = JSON.parse(localStorage.getItem(key) || "{}");
+        }
+      });
+
+      return JSON.stringify(
+        {
+          exportDate: new Date().toISOString(),
+          version: CURRENT_DATA_VERSION,
+          data: allData,
+        },
+        null,
+        2,
+      );
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      return "";
+    }
+  }
+
+  static importAllData(jsonData: string): boolean {
+    try {
+      const parsed = JSON.parse(jsonData);
+
+      if (!parsed.data || !parsed.version) {
+        throw new Error("Invalid export format");
+      }
+
+      // Create backup before import
+      const timestamp = Date.now();
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith(this.prefix) || key === this.settingsPrefix) {
+          const backupKey = `import_backup_${timestamp}_${key}`;
+          localStorage.setItem(backupKey, localStorage.getItem(key) || "");
+        }
+      });
+
+      // Import data
+      Object.entries(parsed.data).forEach(([key, value]) => {
+        localStorage.setItem(key, JSON.stringify(value));
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error importing data:", error);
+      return false;
+    }
+  }
+
+  static getStorageInfo(): { used: number; total: number; available: number } {
+    try {
+      let used = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          used += localStorage.getItem(key)!.length + key.length;
+        }
+      }
+
+      // localStorage limit is typically 5-10MB
+      const estimated = 5 * 1024 * 1024; // 5MB
+
+      return {
+        used,
+        total: estimated,
+        available: Math.max(0, estimated - used),
+      };
+    } catch (error) {
+      return { used: 0, total: 0, available: 0 };
+    }
+  }
+}
+
 export interface BudgetEntry {
   id: string;
   date: string;
