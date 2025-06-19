@@ -77,7 +77,8 @@ export default function ProfileManagementDialog({
         profile.name !== originalProfile.name ||
         profile.bio !== originalProfile.bio ||
         profile.phone !== originalProfile.phone ||
-        profile.location !== originalProfile.location;
+        profile.location !== originalProfile.location ||
+        profile.avatar !== originalProfile.avatar;
       setHasChanges(changed);
     }
   }, [profile, originalProfile]);
