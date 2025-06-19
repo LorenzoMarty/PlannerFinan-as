@@ -174,6 +174,29 @@ export const SupabaseStatus: React.FC = () => {
                 Migrar para Supabase
               </Button>
             )}
+
+            {useSupabase && (
+              <div className="space-y-2">
+                <Button
+                  onClick={handleTestConnection}
+                  variant="outline"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  <TestTube className="h-4 w-4 mr-2" />
+                  Testar Conexão
+                </Button>
+                <Button
+                  onClick={handleTestUserCreation}
+                  variant="outline"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  <Database className="h-4 w-4 mr-2" />
+                  Testar Criação
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="text-xs text-muted-foreground">
