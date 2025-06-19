@@ -314,25 +314,40 @@ export class SupabaseDataService {
     entry: Omit<BudgetEntry, "id">,
   ): Promise<string | null> {
     try {
+      console.log("Creating budget entry:", entry);
+
+      const entryData = {
+        id: this.generateId(),
+        date: entry.date,
+        description: entry.description,
+        category: entry.category,
+        amount: entry.amount,
+        type: entry.type,
+        user_id: entry.userId,
+        budget_id: entry.budgetId,
+      };
+
+      console.log("Entry data to insert:", entryData);
+
       const { data, error } = await supabase
         .from("budget_entries")
-        .insert({
-          date: entry.date,
-          description: entry.description,
-          category: entry.category,
-          amount: entry.amount,
-          type: entry.type,
-          user_id: entry.userId,
-          budget_id: entry.budgetId,
-        })
+        .insert(entryData)
         .select("id")
         .single();
 
-      if (error || !data) {
+      if (error) {
         console.error("Error creating budget entry:", error);
+        console.error("Error code:", error.code);
+        console.error("Error message:", error.message);
         return null;
       }
 
+      if (!data) {
+        console.error("No data returned from insert");
+        return null;
+      }
+
+      console.log("Budget entry created successfully:", data);
       return data.id;
     } catch (error) {
       console.error("Error in createBudgetEntry:", error);
