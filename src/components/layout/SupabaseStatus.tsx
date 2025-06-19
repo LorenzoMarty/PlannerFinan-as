@@ -16,7 +16,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useUserData } from "@/contexts/UserDataContext";
-import { Cloud, CloudOff, Database, ArrowUpDown } from "lucide-react";
+import {
+  testSupabaseConnection,
+  createTestUserProfile,
+} from "@/lib/supabase-test";
+import { Cloud, CloudOff, Database, ArrowUpDown, TestTube } from "lucide-react";
 
 export const SupabaseStatus: React.FC = () => {
   const { useSupabase, isLoading, migrateToSupabase, toggleStorageMode } =
