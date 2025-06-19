@@ -173,8 +173,6 @@ export default function ProfileManagementDialog({
     setIsLoading(true);
 
     try {
-      console.log("Saving profile:", profile);
-
       // Use updateProfile from context to handle all updates
       updateProfile({
         name: profile.name,
@@ -183,8 +181,6 @@ export default function ProfileManagementDialog({
         location: profile.location,
         avatar: profile.avatar,
       });
-
-      console.log("Profile updated via context");
 
       // Update local state
       setOriginalProfile({ ...profile });
