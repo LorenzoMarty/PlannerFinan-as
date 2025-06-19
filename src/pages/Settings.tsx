@@ -530,6 +530,12 @@ export default function Settings() {
                         </Button>
                       }
                     />
+                    <DataBackupDialog>
+                      <Button variant="outline" className="w-full">
+                        <Database className="w-4 h-4 mr-2" />
+                        Backup de Dados
+                      </Button>
+                    </DataBackupDialog>
                   </div>
                 </CardContent>
               </Card>
