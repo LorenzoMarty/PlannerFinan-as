@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { SupabaseDataService } from "@/services/SupabaseDataService";
+import { SupabaseSetup } from "@/lib/supabase-setup";
 
 // Data versioning for migrations
 const CURRENT_DATA_VERSION = "1.0.0";
