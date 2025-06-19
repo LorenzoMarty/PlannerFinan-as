@@ -86,6 +86,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
       }
     };
 
+    // Listen for custom storage events from profile updates
+    const handleCustomStorageEvent = () => {
+      updateUserInfo();
+    };
+
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [currentUser]);
