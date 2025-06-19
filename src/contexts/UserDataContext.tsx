@@ -1116,7 +1116,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   }) => {
     if (!currentUser) return;
 
-    // Update current user profile
+    // Update current user profile in UserDataContext
     const updatedUser = {
       ...currentUser,
       name: updates.name ?? currentUser.name,
@@ -1137,8 +1137,17 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           updatedAt: new Date().toISOString(),
         };
         localStorage.setItem("plannerfinUser", JSON.stringify(updatedAuth));
+
+        // Also save to user data storage for persistence
+        const success = DataStorage.saveUserData(currentUser.id, updatedUser);
+        if (!success) {
+          console.warn("Failed to save user profile data");
+        }
+
+        console.log("Profile updated successfully:", updatedAuth);
       } catch (error) {
         console.error("Error updating auth user:", error);
+        throw error;
       }
     }
 
