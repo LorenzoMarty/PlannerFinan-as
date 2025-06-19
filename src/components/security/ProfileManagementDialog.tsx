@@ -179,10 +179,18 @@ export default function ProfileManagementDialog({
 
       toast.success("Perfil atualizado com sucesso!");
 
+      // Trigger a storage event for other components to update
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "plannerfinUser",
+          newValue: localStorage.getItem("plannerfinUser"),
+        }),
+      );
+
       // Close dialog after successful update
       setTimeout(() => {
         setIsOpen(false);
-      }, 1000);
+      }, 1500);
     } catch (error) {
       toast.error("Erro ao atualizar perfil. Tente novamente.");
       setErrors(["Erro ao salvar as alterações. Tente novamente."]);
