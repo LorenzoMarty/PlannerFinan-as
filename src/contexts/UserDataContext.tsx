@@ -1143,8 +1143,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         if (!success) {
           console.warn("Failed to save user profile data");
         }
-
-        console.log("Profile updated successfully:", updatedAuth);
       } catch (error) {
         console.error("Error updating auth user:", error);
         throw error;
