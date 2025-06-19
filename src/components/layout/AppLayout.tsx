@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useUserData } from "@/contexts/UserDataContext";
 import { Button } from "@/components/ui/button";
 import { BackupStatusIndicator } from "./BackupStatusIndicator";
+import { SupabaseStatus } from "./SupabaseStatus";
 import {
   DropdownMenu,
   DropdownMenuContent,
