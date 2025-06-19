@@ -1439,6 +1439,32 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     return true;
   };
 
+  // Data management methods
+  const exportUserData = (): string => {
+    return DataStorage.exportAllData();
+  };
+
+  const importUserData = (jsonData: string): boolean => {
+    const success = DataStorage.importAllData(jsonData);
+    if (success && currentUser) {
+      // Reload current user data after import
+      const reloadedData = DataStorage.loadUserData(currentUser.id);
+      if (reloadedData) {
+        setCurrentUser(reloadedData);
+      }
+    }
+    return success;
+  };
+
+  const createManualBackup = (): boolean => {
+    if (!currentUser) return false;
+    return DataStorage.createBackup(currentUser.id);
+  };
+
+  const getStorageInfo = () => {
+    return DataStorage.getStorageInfo();
+  };
+
   // Computed values
   const activeBudget = currentUser
     ? currentUser.budgets.find((b) => b.id === currentUser.activeBudgetId) ||
@@ -1469,6 +1495,10 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         joinBudgetByCode,
         findBudgetByCode,
         leaveBudgetAsCollaborator,
+        exportUserData,
+        importUserData,
+        createManualBackup,
+        getStorageInfo,
       }}
     >
       {children}
