@@ -92,7 +92,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
     };
 
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    window.addEventListener("storage", handleCustomStorageEvent);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("storage", handleCustomStorageEvent);
+    };
   }, [currentUser]);
 
   const user = userInfo || {
