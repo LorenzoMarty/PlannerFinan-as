@@ -395,6 +395,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   children,
 }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [useSupabase, setUseSupabase] = useState(true); // Default to Supabase
 
   // Load user data on mount
   useEffect(() => {
