@@ -83,21 +83,32 @@ export default function ProfileManagementDialog({
   }, [profile, originalProfile]);
 
   const loadProfileData = () => {
-    const authUser = JSON.parse(localStorage.getItem("plannerfinUser") || "{}");
+    try {
+      const authUser = JSON.parse(
+        localStorage.getItem("plannerfinUser") || "{}",
+      );
 
-    const profileData: UserProfile = {
-      name: currentUser?.name || authUser.name || "",
-      email: currentUser?.email || authUser.email || "",
-      bio: authUser.bio || "",
-      avatar: authUser.avatar || "",
-      phone: authUser.phone || "",
-      location: authUser.location || "",
-      joinedAt: authUser.joinedAt || new Date().toISOString(),
-      lastLogin: authUser.lastLogin || new Date().toISOString(),
-    };
+      const profileData: UserProfile = {
+        name: currentUser?.name || authUser.name || "",
+        email: currentUser?.email || authUser.email || "",
+        bio: authUser.bio || "",
+        avatar: authUser.avatar || "",
+        phone: authUser.phone || "",
+        location: authUser.location || "",
+        joinedAt: authUser.joinedAt || new Date().toISOString(),
+        lastLogin: authUser.lastLogin || new Date().toISOString(),
+      };
 
-    setProfile(profileData);
-    setOriginalProfile(profileData);
+      console.log("Loading profile data:", profileData);
+
+      setProfile(profileData);
+      setOriginalProfile(profileData);
+      setHasChanges(false);
+      setErrors([]);
+    } catch (error) {
+      console.error("Error loading profile data:", error);
+      setErrors(["Erro ao carregar dados do perfil"]);
+    }
   };
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
