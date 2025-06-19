@@ -119,6 +119,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-start gap-3 p-3">
               <Avatar className="w-6 h-6">
+                {user.avatar && <AvatarImage src={user.avatar} />}
                 <AvatarFallback className="text-xs">
                   {user.name?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
