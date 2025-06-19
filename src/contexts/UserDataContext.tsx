@@ -1401,32 +1401,54 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     return true;
   };
 
-  const addEntry = (
+  const addEntry = async (
     entryData: Omit<BudgetEntry, "id" | "userId" | "budgetId">,
-  ) => {
+  ): Promise<void> => {
     if (!currentUser) return;
+    setIsLoading(true);
 
-    const newEntry: BudgetEntry = {
-      ...entryData,
-      id: generateId(),
-      userId: currentUser.id,
-      budgetId: currentUser.activeBudgetId,
-    };
+    try {
+      const newEntryId = SupabaseDataService.generateId();
+      const newEntry: BudgetEntry = {
+        ...entryData,
+        id: newEntryId,
+        userId: currentUser.id,
+        budgetId: currentUser.activeBudgetId,
+      };
 
-    const updatedBudgets = currentUser.budgets.map((budget) =>
-      budget.id === currentUser.activeBudgetId
-        ? {
-            ...budget,
-            entries: [...budget.entries, newEntry],
-            updatedAt: new Date().toISOString(),
-          }
-        : budget,
-    );
+      console.log("Adding entry:", newEntry);
 
-    setCurrentUser({
-      ...currentUser,
-      budgets: updatedBudgets,
-    });
+      if (useSupabase) {
+        const savedEntryId =
+          await SupabaseDataService.createBudgetEntry(newEntry);
+        if (!savedEntryId) {
+          throw new Error("Failed to save entry to Supabase");
+        }
+        newEntry.id = savedEntryId;
+      }
+
+      const updatedBudgets = currentUser.budgets.map((budget) =>
+        budget.id === currentUser.activeBudgetId
+          ? {
+              ...budget,
+              entries: [...budget.entries, newEntry],
+              updatedAt: new Date().toISOString(),
+            }
+          : budget,
+      );
+
+      setCurrentUser({
+        ...currentUser,
+        budgets: updatedBudgets,
+      });
+
+      console.log("Entry added successfully");
+    } catch (error) {
+      console.error("Error adding entry:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateEntry = (id: string, updates: Partial<BudgetEntry>) => {
