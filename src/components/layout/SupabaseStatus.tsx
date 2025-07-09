@@ -20,7 +20,15 @@ import {
   testSupabaseConnection,
   createTestUserProfile,
 } from "@/lib/supabase-test";
-import { Cloud, CloudOff, Database, ArrowUpDown, TestTube } from "lucide-react";
+import { isUsingDemoCredentials } from "@/lib/supabase";
+import {
+  Cloud,
+  CloudOff,
+  Database,
+  ArrowUpDown,
+  TestTube,
+  AlertTriangle,
+} from "lucide-react";
 
 export const SupabaseStatus: React.FC = () => {
   const { useSupabase, isLoading, migrateToSupabase, toggleStorageMode } =
