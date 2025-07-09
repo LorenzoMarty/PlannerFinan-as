@@ -63,7 +63,20 @@ export async function testSupabaseConnection() {
 export async function createTestUserProfile() {
   console.log("Creating test user profile...");
 
+  if (isUsingDemoCredentials) {
+    console.warn("⚠️ Cannot test user creation in demo mode");
+    console.warn("Please configure real Supabase credentials first");
+    return false;
+  }
+
   try {
+    const isAvailable = await isSupabaseAvailable();
+
+    if (!isAvailable) {
+      console.error("❌ Supabase not available for testing");
+      return false;
+    }
+
     const testUser = {
       id: "test-user-" + Date.now(),
       email: "test@example.com",
@@ -77,19 +90,33 @@ export async function createTestUserProfile() {
       .single();
 
     if (error) {
+      if (error.code === "42P01") {
+        console.error(
+          "❌ Tables not found. Please create them first using SUPABASE_SETUP.md",
+        );
+        return false;
+      }
       console.error("Test user creation failed:", error);
       return false;
     }
 
-    console.log("Test user created successfully:", data);
+    console.log("✅ Test user created successfully:", data);
 
     // Clean up - delete the test user
-    await supabase.from("user_profiles").delete().eq("id", testUser.id);
-    console.log("Test user cleaned up");
+    const { error: deleteError } = await supabase
+      .from("user_profiles")
+      .delete()
+      .eq("id", testUser.id);
+
+    if (deleteError) {
+      console.warn("⚠️ Could not clean up test user:", deleteError);
+    } else {
+      console.log("✅ Test user cleaned up");
+    }
 
     return true;
   } catch (error) {
-    console.error("Test user creation error:", error);
+    console.error("❌ Test user creation error:", error);
     return false;
   }
 }
