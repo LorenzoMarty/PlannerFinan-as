@@ -25,6 +25,12 @@ export class SupabaseDataService {
     profile: Omit<UserProfile, "budgets" | "categories" | "activeBudgetId">,
   ): Promise<boolean> {
     try {
+      const canUseSupabase = await shouldUseSupabase();
+      if (!canUseSupabase) {
+        console.log("Supabase not available, skipping user profile creation");
+        return false;
+      }
+
       // Check if profile already exists
       const { data: existing } = await supabase
         .from("user_profiles")
