@@ -539,15 +539,66 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 <Button
                   variant="outline"
                   className="w-full border-primary/30"
-                  onClick={() => {
+                  onClick={async () => {
                     setEmail("demo@plannerfin.com");
                     setPassword("123456");
                     setActiveTab("login");
-                    // Auto-submit after a brief delay
-                    setTimeout(() => {
+                    setIsLoading(true);
+
+                    try {
+                      // Try to sign in with demo credentials
+                      const { data, error: authError } =
+                        await supabase.auth.signInWithPassword({
+                          email: "demo@plannerfin.com",
+                          password: "123456",
+                        });
+
+                      if (
+                        authError &&
+                        authError.message.includes("Invalid login credentials")
+                      ) {
+                        // Demo user doesn't exist, create it
+                        const { data: signUpData, error: signUpError } =
+                          await supabase.auth.signUp({
+                            email: "demo@plannerfin.com",
+                            password: "123456",
+                            options: {
+                              data: {
+                                name: "Usuário Demo",
+                              },
+                            },
+                          });
+
+                        if (signUpError) {
+                          throw signUpError;
+                        }
+
+                        // Sign in again after creating the user
+                        if (signUpData.user) {
+                          setTimeout(async () => {
+                            const { error: secondAuthError } =
+                              await supabase.auth.signInWithPassword({
+                                email: "demo@plannerfin.com",
+                                password: "123456",
+                              });
+
+                            if (!secondAuthError) {
+                              onLogin("demo@plannerfin.com", "123456");
+                            }
+                          }, 1000);
+                        }
+                      } else if (!authError && data.user) {
+                        onLogin("demo@plannerfin.com", "123456");
+                      }
+                    } catch (error) {
+                      console.error("Demo login error:", error);
+                      // Fallback to direct login for demo
                       onLogin("demo@plannerfin.com", "123456");
-                    }, 500);
+                    } finally {
+                      setIsLoading(false);
+                    }
                   }}
+                  disabled={isLoading}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Acesso Demo
