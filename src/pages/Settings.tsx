@@ -362,7 +362,7 @@ export default function Settings() {
                       />
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Diminui animações para melhor performance
+                      Diminui animaç��es para melhor performance
                     </p>
                   </div>
                 </CardContent>
@@ -541,6 +541,27 @@ export default function Settings() {
                 </CardContent>
               </Card>
 
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Cloud className="w-5 h-5" />
+                    Integração Supabase
+                  </CardTitle>
+                  <CardDescription>
+                    Configure a conexão e sincronização com o banco de dados na
+                    nuvem
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SupabaseConfig />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Dados e Backup */}
+          <TabsContent value="general" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
