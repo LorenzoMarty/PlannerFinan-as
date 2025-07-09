@@ -4,8 +4,12 @@
  * Script para verificar configuração do Vercel antes do deploy
  */
 
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function checkFile(filePath, description) {
   if (fs.existsSync(filePath)) {
@@ -174,11 +178,12 @@ function main() {
   printDeploymentInstructions();
 }
 
-if (require.main === module) {
+// Execute if this is the main module
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 
-module.exports = {
+export {
   checkFile,
   checkEnvVars,
   checkPackageJson,
