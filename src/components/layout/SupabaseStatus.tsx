@@ -103,9 +103,7 @@ export const SupabaseStatus: React.FC = () => {
                 className="cursor-pointer flex items-center gap-1 text-xs px-2 py-1"
               >
                 {getStatusIcon()}
-                <span className="hidden sm:inline">
-                  {useSupabase ? "Cloud" : "Local"}
-                </span>
+                <span className="hidden sm:inline">{getStatusText()}</span>
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
