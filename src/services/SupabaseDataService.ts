@@ -1,10 +1,22 @@
-import { supabase } from "@/lib/supabase";
+import {
+  supabase,
+  isUsingDemoCredentials,
+  isSupabaseAvailable,
+} from "@/lib/supabase";
 import type {
   BudgetEntry,
   Category,
   Budget,
   UserProfile,
 } from "@/contexts/UserDataContext";
+
+// Helper to check if we should use Supabase
+async function shouldUseSupabase(): Promise<boolean> {
+  if (isUsingDemoCredentials) {
+    return false;
+  }
+  return await isSupabaseAvailable();
+}
 
 export class SupabaseDataService {
   // ==================== USER PROFILES ====================
