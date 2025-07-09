@@ -297,6 +297,30 @@ export function SupabaseConfig() {
                 </>
               )}
             </Button>
+
+            {isConnected && (
+              <>
+                <Button
+                  onClick={handleSetupDemoUsers}
+                  disabled={isLoading}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Usuários Demo
+                </Button>
+
+                <Button
+                  onClick={handleResetDemoData}
+                  disabled={isLoading}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset Demo
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
