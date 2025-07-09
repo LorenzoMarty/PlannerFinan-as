@@ -239,15 +239,24 @@ export const SupabaseStatus: React.FC = () => {
             )}
           </div>
 
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground space-y-2">
             <p>
               <strong>Supabase:</strong> Dados sincronizados na nuvem,
               acessíveis de qualquer dispositivo.
             </p>
-            <p className="mt-1">
+            <p>
               <strong>LocalStorage:</strong> Dados salvos apenas neste
               navegador.
             </p>
+            {isUsingDemoCredentials && (
+              <div className="p-2 bg-blue-50 rounded text-blue-700 border border-blue-200">
+                <p className="font-medium">Para configurar Supabase:</p>
+                <p>1. Crie um projeto em supabase.com</p>
+                <p>2. Configure as variáveis:</p>
+                <p className="font-mono text-xs">VITE_SUPABASE_URL</p>
+                <p className="font-mono text-xs">VITE_SUPABASE_ANON_KEY</p>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
