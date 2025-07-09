@@ -1,4 +1,4 @@
-import LoginForm from "@/components/auth/LoginForm";
+import SimpleLoginForm from "@/components/auth/SimpleLoginForm";
 import { useNavigate } from "react-router-dom";
 import { useUserData } from "@/contexts/UserDataContext";
 import { supabase } from "@/lib/supabase";
