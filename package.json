@@ -7,7 +7,9 @@
     "build": "vite build",
     "test": "vitest --run",
     "format.fix": "prettier --write .",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "verify-vercel": "node scripts/verify-vercel-config.js",
+    "prebuild": "npm run verify-vercel"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
