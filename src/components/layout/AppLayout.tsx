@@ -66,6 +66,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
   const { currentUser, clearUser } = useUserData();
+  const { toast } = useToast();
 
   // Update user info when currentUser changes or storage changes
   useEffect(() => {
