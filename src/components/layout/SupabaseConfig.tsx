@@ -13,6 +13,7 @@ import { useUserData } from "@/contexts/UserDataContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { SupabaseSetup } from "@/lib/supabase-setup";
+import { setupDemoUsers, resetDemoData } from "@/lib/setup-demo-users";
 import {
   Cloud,
   CloudOff,
@@ -24,6 +25,8 @@ import {
   Server,
   Shield,
   HardDrive,
+  Users,
+  RotateCcw,
 } from "lucide-react";
 
 export function SupabaseConfig() {
@@ -66,7 +69,7 @@ export function SupabaseConfig() {
         });
       } else {
         toast({
-          title: "Falha na conex��o",
+          title: "Falha na conexão",
           description: "Não foi possível conectar ao Supabase",
           variant: "destructive",
         });
