@@ -12,6 +12,18 @@ export const isUsingDemoCredentials =
   !import.meta.env.VITE_SUPABASE_URL ||
   !import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+// Log current configuration for debugging
+if (import.meta.env.DEV) {
+  console.log("🔧 Supabase Configuration:");
+  console.log("- URL:", supabaseUrl);
+  console.log("- Using demo credentials:", isUsingDemoCredentials);
+  console.log("- Environment URL set:", !!import.meta.env.VITE_SUPABASE_URL);
+  console.log(
+    "- Environment Key set:",
+    !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+  );
+}
+
 // Create Supabase client with error handling
 let supabaseClient: ReturnType<typeof createClient> | null = null;
 
