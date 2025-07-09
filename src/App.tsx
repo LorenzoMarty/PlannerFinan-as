@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { UserDataProvider } from "@/contexts/UserDataContext";
 import { AutoSaveNotification } from "@/components/layout/AutoSaveNotification";
+import { supabase } from "@/lib/supabase";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
