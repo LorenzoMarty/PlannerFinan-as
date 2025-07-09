@@ -38,6 +38,9 @@ export const SupabaseStatus: React.FC = () => {
     if (isLoading) {
       return <ArrowUpDown className="h-3 w-3 animate-spin" />;
     }
+    if (isUsingDemoCredentials && useSupabase) {
+      return <AlertTriangle className="h-3 w-3" />;
+    }
     return useSupabase ? (
       <Cloud className="h-3 w-3" />
     ) : (
@@ -47,7 +50,15 @@ export const SupabaseStatus: React.FC = () => {
 
   const getStatusColor = () => {
     if (isLoading) return "secondary";
+    if (isUsingDemoCredentials && useSupabase) return "destructive";
     return useSupabase ? "default" : "outline";
+  };
+
+  const getStatusText = () => {
+    if (isUsingDemoCredentials && useSupabase) {
+      return "Demo";
+    }
+    return useSupabase ? "Cloud" : "Local";
   };
 
   const handleMigrate = async () => {
