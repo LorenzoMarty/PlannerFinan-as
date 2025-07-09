@@ -73,7 +73,7 @@ const App = () => {
           <AutoSaveNotification />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Login />} />
+              <Route path="/" element={<Index />} />
               <Route
                 path="/dashboard"
                 element={
