@@ -152,6 +152,46 @@ export function SupabaseConfig() {
     });
   };
 
+  const handleSetupDemoUsers = async () => {
+    setIsLoading(true);
+    try {
+      await setupDemoUsers();
+      toast({
+        title: "Usuários demo configurados!",
+        description: "Os usuários de demonstração foram criados no Supabase",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao configurar usuários demo",
+        description: "Verifique o console para mais detalhes",
+        variant: "destructive",
+      });
+      console.error("Setup demo users error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetDemoData = async () => {
+    setIsLoading(true);
+    try {
+      await resetDemoData();
+      toast({
+        title: "Dados demo resetados!",
+        description: "Os dados de demonstração foram limpos",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao resetar dados demo",
+        description: "Verifique o console para mais detalhes",
+        variant: "destructive",
+      });
+      console.error("Reset demo data error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getStatusIcon = () => {
     switch (connectionStatus) {
       case "checking":
