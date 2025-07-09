@@ -1,10 +1,90 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = "https://hzqidfqjysjclksqqvqj.supabase.co";
-const supabaseKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6cWlkZnFqeXNqY2xrc3FxdnFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzMDk0NjQsImV4cCI6MjA2NTg4NTQ2NH0.53rN2ApyyJpTDQkl3-xFXOcYMGBg4wK7Oqz0uYnQM7Q";
+// Get Supabase configuration from environment variables or use defaults
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL || "https://demo.supabase.co";
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "demo-key";
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Track if we're using demo credentials
+export const isUsingDemoCredentials =
+  supabaseUrl === "https://demo.supabase.co" ||
+  supabaseKey === "demo-key" ||
+  !import.meta.env.VITE_SUPABASE_URL ||
+  !import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Create Supabase client with error handling
+let supabaseClient: ReturnType<typeof createClient> | null = null;
+
+try {
+  if (!isUsingDemoCredentials) {
+    supabaseClient = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false, // We don't use Supabase auth, just storage
+      },
+    });
+  }
+} catch (error) {
+  console.warn("Failed to initialize Supabase client:", error);
+  supabaseClient = null;
+}
+
+// Export a safe client that handles demo mode
+export const supabase =
+  supabaseClient ||
+  ({
+    from: () => ({
+      select: () =>
+        Promise.resolve({
+          data: null,
+          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+        }),
+      insert: () =>
+        Promise.resolve({
+          data: null,
+          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+        }),
+      update: () =>
+        Promise.resolve({
+          data: null,
+          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+        }),
+      delete: () =>
+        Promise.resolve({
+          data: null,
+          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+        }),
+      upsert: () =>
+        Promise.resolve({
+          data: null,
+          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+        }),
+    }),
+    rpc: () =>
+      Promise.resolve({
+        data: null,
+        error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+      }),
+  } as any);
+
+// Helper function to check if Supabase is available
+export const isSupabaseAvailable = async (): Promise<boolean> => {
+  if (isUsingDemoCredentials || !supabaseClient) {
+    return false;
+  }
+
+  try {
+    // Simple connectivity test
+    const { error } = await supabaseClient
+      .from("user_profiles")
+      .select("id")
+      .limit(1);
+
+    return !error || error.code !== "PGRST003"; // Table doesn't exist is ok, connection error is not
+  } catch (error) {
+    console.warn("Supabase connectivity test failed:", error);
+    return false;
+  }
+};
 
 // Database schema types
 export interface Database {
