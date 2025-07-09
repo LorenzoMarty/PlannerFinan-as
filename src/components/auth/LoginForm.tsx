@@ -25,6 +25,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
   onLogin: (email: string, password: string) => void;
