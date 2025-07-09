@@ -2,15 +2,29 @@ import { createClient } from "@supabase/supabase-js";
 
 // Get Supabase configuration from environment variables or use defaults
 const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL || "https://demo.supabase.co";
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "demo-key";
+  import.meta.env.VITE_SUPABASE_URL ||
+  (typeof window !== "undefined" && (window as any).ENV?.VITE_SUPABASE_URL) ||
+  "https://demo.supabase.co";
+
+const supabaseKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  (typeof window !== "undefined" &&
+    (window as any).ENV?.VITE_SUPABASE_ANON_KEY) ||
+  "demo-key";
 
 // Track if we're using demo credentials
 export const isUsingDemoCredentials =
   supabaseUrl === "https://demo.supabase.co" ||
   supabaseKey === "demo-key" ||
-  !import.meta.env.VITE_SUPABASE_URL ||
-  !import.meta.env.VITE_SUPABASE_ANON_KEY;
+  (!import.meta.env.VITE_SUPABASE_URL &&
+    !(
+      typeof window !== "undefined" && (window as any).ENV?.VITE_SUPABASE_URL
+    )) ||
+  (!import.meta.env.VITE_SUPABASE_ANON_KEY &&
+    !(
+      typeof window !== "undefined" &&
+      (window as any).ENV?.VITE_SUPABASE_ANON_KEY
+    ));
 
 // Log current configuration for debugging
 if (import.meta.env.DEV) {
@@ -32,6 +46,21 @@ try {
     supabaseClient = createClient(supabaseUrl, supabaseKey, {
       auth: {
         persistSession: false, // We don't use Supabase auth, just storage
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+      global: {
+        headers: {
+          apikey: supabaseKey,
+        },
+      },
+      db: {
+        schema: "public",
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
       },
     });
   }

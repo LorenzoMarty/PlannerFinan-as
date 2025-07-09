@@ -2,6 +2,8 @@
 
 ## Passo 0: Configurar Variáveis de Ambiente
 
+### Para Desenvolvimento Local:
+
 1. Crie um arquivo `.env` na raiz do projeto (copie o `.env.example`):
 
 ```bash
@@ -15,7 +17,15 @@ VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua_chave_anonima
 ```
 
-Para encontrar essas informações:
+### Para Deploy no Vercel:
+
+1. Acesse seu projeto no [vercel.com](https://vercel.com)
+2. Vá em **Settings > Environment Variables**
+3. Adicione as mesmas variáveis para todos os ambientes (Production, Preview, Development):
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+
+### Onde encontrar essas informações:
 
 - Acesse [supabase.com/dashboard](https://supabase.com/dashboard)
 - Selecione seu projeto
