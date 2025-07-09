@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { SupabaseDataService } from "@/services/SupabaseDataService";
 import { SupabaseSetup } from "@/lib/supabase-setup";
+import { supabase } from "@/lib/supabase";
 
 // Data versioning for migrations
 const CURRENT_DATA_VERSION = "1.0.0";
