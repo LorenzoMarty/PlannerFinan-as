@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { UserDataProvider } from "@/contexts/UserDataContext";
 import { AutoSaveNotification } from "@/components/layout/AutoSaveNotification";
+import { supabase } from "@/lib/supabase";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
@@ -19,8 +20,31 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const user = localStorage.getItem("plannerfinUser");
-    setIsAuthenticated(!!user);
+    const checkAuth = async () => {
+      // Check both localStorage and Supabase session
+      const localUser = localStorage.getItem("plannerfinUser");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setIsAuthenticated(!!(localUser && session?.user));
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
+        setIsAuthenticated(false);
+        localStorage.removeItem("plannerfinUser");
+      } else if (event === "SIGNED_IN" && session.user) {
+        setIsAuthenticated(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   if (isAuthenticated === null) {

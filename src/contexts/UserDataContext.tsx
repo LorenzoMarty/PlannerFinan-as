@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { SupabaseDataService } from "@/services/SupabaseDataService";
 import { SupabaseSetup } from "@/lib/supabase-setup";
+import { supabase } from "@/lib/supabase";
 
 // Data versioning for migrations
 const CURRENT_DATA_VERSION = "1.0.0";
@@ -488,31 +489,37 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   }, [currentUser]);
 
   const loadUserProfile = async (authUser: any) => {
-    const userId = btoa(authUser.email); // Simple ID generation
+    // Get current Supabase session to ensure we have the correct user ID
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const userId = session?.user?.id || btoa(authUser.email); // Use Supabase user ID if available
+
     setIsLoading(true);
 
     try {
-      if (useSupabase) {
+      if (useSupabase && session?.user) {
         // Try to load from Supabase first
         let supabaseData = await SupabaseDataService.getUserProfile(userId);
 
         if (!supabaseData) {
           // If no data in Supabase, check localStorage and migrate
-          const localData = DataStorage.loadUserData(userId);
-          if (localData) {
-            // Create user profile in Supabase
-            await SupabaseDataService.createUserProfile({
-              id: userId,
-              email: authUser.email,
-              name: authUser.name,
-            });
+          const localData = DataStorage.loadUserData(btoa(authUser.email));
 
+          // Create user profile in Supabase
+          await SupabaseDataService.createUserProfile({
+            id: userId,
+            email: authUser.email,
+            name: authUser.name,
+          });
+
+          if (localData) {
             // Migrate data to Supabase
             await SupabaseDataService.migrateFromLocalStorage(userId);
-
-            // Load the migrated data
-            supabaseData = await SupabaseDataService.getUserProfile(userId);
           }
+
+          // Load the migrated or newly created data
+          supabaseData = await SupabaseDataService.getUserProfile(userId);
         }
 
         if (supabaseData) {
@@ -521,7 +528,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         }
       } else {
         // Use localStorage
-        const existingData = DataStorage.loadUserData(userId);
+        const existingData = DataStorage.loadUserData(btoa(authUser.email));
         if (existingData) {
           setCurrentUser(existingData);
           return;
@@ -530,7 +537,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     } catch (error) {
       console.error("Error loading user profile:", error);
       // Fallback to localStorage on error
-      const existingData = DataStorage.loadUserData(userId);
+      const existingData = DataStorage.loadUserData(btoa(authUser.email));
       if (existingData) {
         setCurrentUser(existingData);
         return;

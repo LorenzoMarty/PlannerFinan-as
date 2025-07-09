@@ -25,6 +25,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
   onLogin: (email: string, password: string) => void;
@@ -41,6 +43,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
+  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,11 +55,36 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     setIsLoading(true);
     setError("");
 
-    // Simulate API call with more realistic timing
-    setTimeout(() => {
-      onLogin(email, password);
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword(
+        {
+          email,
+          password,
+        },
+      );
+
+      if (authError) {
+        if (authError.message.includes("Invalid login credentials")) {
+          setError("Email ou senha incorretos");
+        } else {
+          setError("Erro ao fazer login. Tente novamente.");
+        }
+        return;
+      }
+
+      if (data.user) {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Bem-vindo de volta ao PlannerFin",
+        });
+        onLogin(email, password);
+      }
+    } catch (error) {
+      setError("Erro inesperado. Tente novamente.");
+      console.error("Login error:", error);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -79,10 +107,49 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     setIsLoading(true);
     setError("");
 
-    setTimeout(() => {
-      onLogin(email, password);
+    try {
+      const { data, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          },
+        },
+      });
+
+      if (authError) {
+        if (authError.message.includes("User already registered")) {
+          setError("Este email já está cadastrado. Tente fazer login.");
+        } else {
+          setError("Erro ao criar conta. Tente novamente.");
+        }
+        return;
+      }
+
+      if (data.user) {
+        if (data.user.email_confirmed_at) {
+          // User is immediately confirmed
+          toast({
+            title: "Conta criada com sucesso!",
+            description: "Bem-vindo ao PlannerFin",
+          });
+          onLogin(email, password);
+        } else {
+          // User needs to confirm email
+          toast({
+            title: "Conta criada!",
+            description: "Verifique seu email para confirmar a conta",
+          });
+          setActiveTab("login");
+        }
+      }
+    } catch (error) {
+      setError("Erro inesperado. Tente novamente.");
+      console.error("Signup error:", error);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const features = [
@@ -472,15 +539,66 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 <Button
                   variant="outline"
                   className="w-full border-primary/30"
-                  onClick={() => {
+                  onClick={async () => {
                     setEmail("demo@plannerfin.com");
                     setPassword("123456");
                     setActiveTab("login");
-                    // Auto-submit after a brief delay
-                    setTimeout(() => {
+                    setIsLoading(true);
+
+                    try {
+                      // Try to sign in with demo credentials
+                      const { data, error: authError } =
+                        await supabase.auth.signInWithPassword({
+                          email: "demo@plannerfin.com",
+                          password: "123456",
+                        });
+
+                      if (
+                        authError &&
+                        authError.message.includes("Invalid login credentials")
+                      ) {
+                        // Demo user doesn't exist, create it
+                        const { data: signUpData, error: signUpError } =
+                          await supabase.auth.signUp({
+                            email: "demo@plannerfin.com",
+                            password: "123456",
+                            options: {
+                              data: {
+                                name: "Usuário Demo",
+                              },
+                            },
+                          });
+
+                        if (signUpError) {
+                          throw signUpError;
+                        }
+
+                        // Sign in again after creating the user
+                        if (signUpData.user) {
+                          setTimeout(async () => {
+                            const { error: secondAuthError } =
+                              await supabase.auth.signInWithPassword({
+                                email: "demo@plannerfin.com",
+                                password: "123456",
+                              });
+
+                            if (!secondAuthError) {
+                              onLogin("demo@plannerfin.com", "123456");
+                            }
+                          }, 1000);
+                        }
+                      } else if (!authError && data.user) {
+                        onLogin("demo@plannerfin.com", "123456");
+                      }
+                    } catch (error) {
+                      console.error("Demo login error:", error);
+                      // Fallback to direct login for demo
                       onLogin("demo@plannerfin.com", "123456");
-                    }, 500);
+                    } finally {
+                      setIsLoading(false);
+                    }
                   }}
+                  disabled={isLoading}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Acesso Demo

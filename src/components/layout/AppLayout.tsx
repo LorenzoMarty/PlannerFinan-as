@@ -25,6 +25,8 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -64,6 +66,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
   const { currentUser, clearUser } = useUserData();
+  const { toast } = useToast();
 
   // Update user info when currentUser changes or storage changes
   useEffect(() => {
@@ -107,10 +110,38 @@ export default function AppLayout({ children }: AppLayoutProps) {
     avatar: null,
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("plannerfinUser");
-    clearUser();
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error("Error signing out:", error);
+        toast({
+          title: "Erro ao sair",
+          description: "Houve um problema ao fazer logout",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Clear local storage and user data
+      localStorage.removeItem("plannerfinUser");
+      clearUser();
+
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso",
+      });
+
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Force logout even if Supabase fails
+      localStorage.removeItem("plannerfinUser");
+      clearUser();
+      navigate("/");
+    }
   };
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
