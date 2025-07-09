@@ -67,6 +67,12 @@ export class SupabaseDataService {
     try {
       console.log("Getting user profile for:", userId);
 
+      const canUseSupabase = await shouldUseSupabase();
+      if (!canUseSupabase) {
+        console.log("Supabase not available, returning null");
+        return null;
+      }
+
       // Get user profile
       const { data: profile, error: profileError } = await supabase
         .from("user_profiles")
