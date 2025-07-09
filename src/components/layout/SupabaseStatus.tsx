@@ -111,7 +111,12 @@ export const SupabaseStatus: React.FC = () => {
                 <div className="font-medium">Armazenamento de Dados</div>
                 <div className="text-xs space-y-1">
                   <div>
-                    Modo: {useSupabase ? "Supabase (Cloud)" : "LocalStorage"}
+                    Modo:{" "}
+                    {isUsingDemoCredentials && useSupabase
+                      ? "Demo (Sem Supabase real)"
+                      : useSupabase
+                        ? "Supabase (Cloud)"
+                        : "LocalStorage"}
                   </div>
                   <div>
                     Status: {isLoading ? "Sincronizando..." : "Conectado"}
