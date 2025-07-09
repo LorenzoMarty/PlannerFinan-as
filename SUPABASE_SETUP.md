@@ -1,5 +1,27 @@
 # Configuração do Supabase para PlannerFin
 
+## Passo 0: Configurar Variáveis de Ambiente
+
+1. Crie um arquivo `.env` na raiz do projeto (copie o `.env.example`):
+
+```bash
+cp .env.example .env
+```
+
+2. Abra o arquivo `.env` e configure suas credenciais do Supabase:
+
+```env
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sua_chave_anonima
+```
+
+Para encontrar essas informações:
+
+- Acesse [supabase.com/dashboard](https://supabase.com/dashboard)
+- Selecione seu projeto
+- Vá em Settings > API
+- Copie a "Project URL" e "anon public" key
+
 ## Passo 1: Criar as tabelas no Supabase
 
 Execute os seguintes comandos SQL no Editor SQL do Supabase (https://supabase.com/dashboard/project/YOUR_PROJECT/sql):
