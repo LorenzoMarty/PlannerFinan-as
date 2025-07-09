@@ -141,6 +141,19 @@ export const SupabaseStatus: React.FC = () => {
         </DialogHeader>
 
         <div className="space-y-4">
+          {isUsingDemoCredentials && useSupabase && (
+            <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                <h4 className="font-medium text-yellow-800">Modo Demo</h4>
+              </div>
+              <p className="text-sm text-yellow-700">
+                Supabase não está configurado. Configure as variáveis de
+                ambiente para usar o armazenamento na nuvem.
+              </p>
+            </div>
+          )}
+
           <div className="p-4 border rounded-lg">
             <div className="flex items-center gap-3 mb-2">
               <Cloud className="h-5 w-5 text-blue-500" />
@@ -151,9 +164,14 @@ export const SupabaseStatus: React.FC = () => {
                 </p>
               </div>
             </div>
-            {useSupabase && (
+            {useSupabase && !isUsingDemoCredentials && (
               <Badge variant="default" className="text-xs">
                 Ativo
+              </Badge>
+            )}
+            {useSupabase && isUsingDemoCredentials && (
+              <Badge variant="destructive" className="text-xs">
+                Demo Mode
               </Badge>
             )}
           </div>
