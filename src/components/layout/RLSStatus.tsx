@@ -185,13 +185,12 @@ export function RLSStatus({ showDetails = false }: RLSStatusProps) {
         )}
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={checkStatus}
             disabled={isLoading}
-            className="flex-1"
           >
             {isLoading ? (
               <RefreshCw className="w-3 h-3 animate-spin mr-1" />
@@ -205,9 +204,24 @@ export function RLSStatus({ showDetails = false }: RLSStatusProps) {
             size="sm"
             onClick={runFullTest}
             disabled={isLoading}
-            className="flex-1"
           >
             Test RLS
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={runDiagnostics}
+            disabled={isLoading}
+          >
+            Diagnose
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={repairIssues}
+            disabled={isLoading}
+          >
+            Repair
           </Button>
         </div>
 
