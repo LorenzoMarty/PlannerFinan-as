@@ -1,11 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Get Supabase configuration from environment variables or use defaults
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase =
-  supabaseClient ||
+  createClient ||
   ({
     from: () => ({ select: () => Promise.resolve({ data: [], error: null }) }),
     auth: { getSession: () => Promise.resolve({ data: { session: null }, error: null }) },
