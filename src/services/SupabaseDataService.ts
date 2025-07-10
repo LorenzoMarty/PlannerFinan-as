@@ -389,12 +389,6 @@ export class SupabaseDataService {
           hint: error.hint,
         });
 
-        // If RLS error, try without RLS temporarily
-        if (error.code === "42501") {
-          console.warn("RLS policy violation - entry creation failed");
-          console.log("Falling back to localStorage mode");
-        }
-
         return null;
       }
 
