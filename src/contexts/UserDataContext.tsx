@@ -6,9 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { SupabaseDataService } from "@/services/SupabaseDataService";
-import { SupabaseSetup } from "@/lib/supabase-setup";
 import { supabase } from "@/lib/supabase";
-import { setupMockAuthentication } from "@/lib/auth-mock";
 
 // Data versioning for migrations
 const CURRENT_DATA_VERSION = "1.0.0";
@@ -407,51 +405,12 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [useSupabase, setUseSupabase] = useState(true); // Default to Supabase
+  const [useSupabase, setUseSupabase] = useState(false); // Default to localStorage
 
   // Load user data on mount
   useEffect(() => {
     const initializeApp = async () => {
       if (typeof window === "undefined") return;
-
-      // Initialize Supabase if needed
-      if (useSupabase) {
-        console.log("Initializing Supabase...");
-
-        // Set up mock authentication for RLS policies
-        const authSetup = await setupMockAuthentication();
-        if (authSetup) {
-          console.log("🔧 Mock authentication established for RLS");
-        }
-
-        const connected = await SupabaseSetup.testConnection();
-        if (connected) {
-          await SupabaseSetup.ensureTablesExist();
-
-          // Test if we can actually perform operations
-          try {
-            const {
-              data: { session },
-            } = await supabase.auth.getSession();
-            if (session?.user) {
-              console.log("✅ Supabase ready for operations");
-            }
-          } catch (testError) {
-            console.warn(
-              "Supabase test failed, falling back to localStorage:",
-              testError,
-            );
-            setUseSupabase(false);
-            localStorage.setItem("plannerfinUseSupabase", "false");
-          }
-        } else {
-          console.warn(
-            "Supabase connection failed, falling back to localStorage",
-          );
-          setUseSupabase(false);
-          localStorage.setItem("plannerfinUseSupabase", "false");
-        }
-      }
 
       // Load user preference for storage mode
       const savedMode = localStorage.getItem("plannerfinUseSupabase");
@@ -498,7 +457,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       window.addEventListener("storage", handleStorageChange);
       return () => window.removeEventListener("storage", handleStorageChange);
     }
-  }, [useSupabase]);
+  }, []);
 
   // Save user data whenever it changes with enhanced persistence
   useEffect(() => {
@@ -506,7 +465,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       const success = DataStorage.saveUserData(currentUser.id, currentUser);
       if (!success) {
         console.warn("Failed to save user data to localStorage");
-        // Could show a toast notification here
       }
     }
   }, [currentUser]);
@@ -586,23 +544,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       setIsLoading(false);
     }
 
-    // Check if it's a demo user and create appropriate data
-    const isDemoUser = authUser.email === "demo@plannerfin.com";
-    const isAdminUser = authUser.email === "admin@plannerfin.com";
-    const isJoaoUser = authUser.email === "user@exemplo.com";
-
-    let newProfile: UserProfile;
-
-    if (isDemoUser) {
-      newProfile = createDemoUserProfile(userId, authUser);
-    } else if (isAdminUser) {
-      newProfile = createAdminUserProfile(userId, authUser);
-    } else if (isJoaoUser) {
-      newProfile = createJoaoUserProfile(userId, authUser);
-    } else {
-      newProfile = createDefaultUserProfile(userId, authUser);
-    }
-
+    // Create default user profile
+    const newProfile = createDefaultUserProfile(userId, authUser);
     setCurrentUser(newProfile);
   };
 
@@ -630,601 +573,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           collaborators: [],
           entries: [],
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ],
-    };
-  };
-
-  const createDemoUserProfile = (
-    userId: string,
-    authUser: any,
-  ): UserProfile => {
-    const budget1Id = generateId();
-    const budget2Id = generateId();
-    const budget3Id = generateId();
-
-    // Generate realistic entry IDs and dates
-    const generateEntryId = () => generateId();
-    const generateDate = (monthsAgo: number, dayRange: number = 28) => {
-      const date = new Date();
-      date.setMonth(date.getMonth() - monthsAgo);
-      date.setDate(Math.floor(Math.random() * dayRange) + 1);
-      return date.toISOString().split("T")[0];
-    };
-
-    // Enhanced categories with more variety
-    const demoCategories = [
-      ...defaultCategories.map((cat) => ({ ...cat, id: generateId(), userId })),
-      {
-        id: generateId(),
-        name: "Investimentos",
-        type: "income" as const,
-        color: "#10b981",
-        icon: "📈",
-        description: "Rendimentos e dividendos",
-        userId,
-      },
-      {
-        id: generateId(),
-        name: "Vendas",
-        type: "income" as const,
-        color: "#3b82f6",
-        icon: "💼",
-        description: "Vendas online e serviços",
-        userId,
-      },
-      {
-        id: generateId(),
-        name: "Educação",
-        type: "expense" as const,
-        color: "#8b5cf6",
-        icon: "📚",
-        description: "Cursos e materiais educativos",
-        userId,
-      },
-      {
-        id: generateId(),
-        name: "Saúde",
-        type: "expense" as const,
-        color: "#ef4444",
-        icon: "🏥",
-        description: "Plano de saúde e medicamentos",
-        userId,
-      },
-      {
-        id: generateId(),
-        name: "Tecnologia",
-        type: "expense" as const,
-        color: "#06b6d4",
-        icon: "💻",
-        description: "Eletrônicos e softwares",
-        userId,
-      },
-      {
-        id: generateId(),
-        name: "Academia",
-        type: "expense" as const,
-        color: "#f59e0b",
-        icon: "💪",
-        description: "Mensalidade e suplementos",
-        userId,
-      },
-    ];
-
-    // Realistic demo entries for last 3 months
-    const demoEntries = [
-      // Current month (December 2024)
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Salário Dezembro",
-        category: "Salário",
-        amount: 8500,
-        type: "income" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Freelance Design",
-        category: "Freelance",
-        amount: 1200,
-        type: "income" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Dividendos ETF",
-        category: "Investimentos",
-        amount: 450,
-        type: "income" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Aluguel",
-        category: "Moradia",
-        amount: -2500,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Supermercado Extra",
-        category: "Alimentação",
-        amount: -680,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Conta de Luz",
-        category: "Moradia",
-        amount: -280,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Netflix",
-        category: "Lazer",
-        amount: -45,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Spotify",
-        category: "Lazer",
-        amount: -35,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Uber",
-        category: "Transporte",
-        amount: -125,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Curso React",
-        category: "Educação",
-        amount: -299,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Plano de Saúde",
-        category: "Saúde",
-        amount: -420,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Academia Smart Fit",
-        category: "Academia",
-        amount: -89,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Jantar Restaurante",
-        category: "Alimentação",
-        amount: -180,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(0),
-        description: "Gasolina",
-        category: "Transporte",
-        amount: -320,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-
-      // Previous month (November 2024)
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "Salário Novembro",
-        category: "Salário",
-        amount: 8500,
-        type: "income" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "Projeto WordPress",
-        category: "Freelance",
-        amount: 800,
-        type: "income" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "Venda Notebook Antigo",
-        category: "Vendas",
-        amount: 1500,
-        type: "income" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "Aluguel",
-        category: "Moradia",
-        amount: -2500,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "Supermercado",
-        category: "Alimentação",
-        amount: -720,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "Conta de Água",
-        category: "Moradia",
-        amount: -95,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "Cinema",
-        category: "Lazer",
-        amount: -80,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "Farmácia",
-        category: "Saúde",
-        amount: -150,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "MacBook Air M2",
-        category: "Tecnologia",
-        amount: -8500,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(1),
-        description: "99Food",
-        category: "Alimentação",
-        amount: -65,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-
-      // Two months ago (October 2024)
-      {
-        id: generateEntryId(),
-        date: generateDate(2),
-        description: "Salário Outubro",
-        category: "Salário",
-        amount: 8500,
-        type: "income" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(2),
-        description: "Bônus Projeto",
-        category: "Freelance",
-        amount: 2000,
-        type: "income" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(2),
-        description: "Aluguel",
-        category: "Moradia",
-        amount: -2500,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(2),
-        description: "Supermercado",
-        category: "Alimentação",
-        amount: -650,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(2),
-        description: "Viagem São Paulo",
-        category: "Lazer",
-        amount: -1200,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-      {
-        id: generateEntryId(),
-        date: generateDate(2),
-        description: "Combustível",
-        category: "Transporte",
-        amount: -400,
-        type: "expense" as const,
-        userId,
-        budgetId: budget1Id,
-      },
-    ];
-
-    return {
-      id: userId,
-      email: authUser.email,
-      name: authUser.name,
-      activeBudgetId: budget1Id,
-      categories: demoCategories,
-      budgets: [
-        {
-          id: budget1Id,
-          name: "Orçamento Pessoal 2024",
-          code: "PFDEMO01",
-          ownerId: userId,
-          collaborators: [],
-          entries: demoEntries,
-          createdAt: new Date(2024, 0, 1).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: budget2Id,
-          name: "Planejamento 2025",
-          code: "PFDEMO02",
-          ownerId: userId,
-          collaborators: [],
-          entries: [],
-          createdAt: new Date(2024, 11, 1).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: budget3Id,
-          name: "Família Silva",
-          code: "PFFAM001",
-          ownerId: userId,
-          collaborators: ["fake_user_1", "fake_user_2"],
-          entries: [
-            {
-              id: generateEntryId(),
-              date: generateDate(0),
-              description: "Mesada João",
-              category: "Lazer",
-              amount: -200,
-              type: "expense" as const,
-              userId: "fake_user_1",
-              budgetId: budget3Id,
-            },
-            {
-              id: generateEntryId(),
-              date: generateDate(0),
-              description: "Compras Casa",
-              category: "Moradia",
-              amount: -800,
-              type: "expense" as const,
-              userId: "fake_user_2",
-              budgetId: budget3Id,
-            },
-          ],
-          createdAt: new Date(2024, 9, 15).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ],
-    };
-  };
-
-  const createAdminUserProfile = (
-    userId: string,
-    authUser: any,
-  ): UserProfile => {
-    const budgetId = generateId();
-
-    const adminEntries = [
-      {
-        id: generateId(),
-        date: "2024-12-01",
-        description: "Receita Sistema",
-        category: "Salário",
-        amount: 15000,
-        type: "income" as const,
-        userId,
-        budgetId,
-      },
-      {
-        id: generateId(),
-        date: "2024-12-05",
-        description: "Consultoria Tech",
-        category: "Freelance",
-        amount: 5000,
-        type: "income" as const,
-        userId,
-        budgetId,
-      },
-      {
-        id: generateId(),
-        date: "2024-12-10",
-        description: "Servidor AWS",
-        category: "Tecnologia",
-        amount: -450,
-        type: "expense" as const,
-        userId,
-        budgetId,
-      },
-      {
-        id: generateId(),
-        date: "2024-12-15",
-        description: "Escrit��rio Coworking",
-        category: "Moradia",
-        amount: -800,
-        type: "expense" as const,
-        userId,
-        budgetId,
-      },
-    ];
-
-    return {
-      id: userId,
-      email: authUser.email,
-      name: authUser.name,
-      activeBudgetId: budgetId,
-      categories: defaultCategories.map((cat) => ({
-        ...cat,
-        id: generateId(),
-        userId,
-      })),
-      budgets: [
-        {
-          id: budgetId,
-          name: "Controle Administrativo",
-          code: "PFADM001",
-          ownerId: userId,
-          collaborators: [],
-          entries: adminEntries,
-          createdAt: new Date(2024, 10, 1).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ],
-    };
-  };
-
-  const createJoaoUserProfile = (
-    userId: string,
-    authUser: any,
-  ): UserProfile => {
-    const budgetId = generateId();
-
-    const joaoEntries = [
-      {
-        id: generateId(),
-        date: "2024-12-01",
-        description: "Salário CLT",
-        category: "Salário",
-        amount: 4500,
-        type: "income" as const,
-        userId,
-        budgetId,
-      },
-      {
-        id: generateId(),
-        date: "2024-12-03",
-        description: "Aluguel",
-        category: "Moradia",
-        amount: -1200,
-        type: "expense" as const,
-        userId,
-        budgetId,
-      },
-      {
-        id: generateId(),
-        date: "2024-12-05",
-        description: "Mercado",
-        category: "Alimentação",
-        amount: -350,
-        type: "expense" as const,
-        userId,
-        budgetId,
-      },
-      {
-        id: generateId(),
-        date: "2024-12-08",
-        description: "Transporte Público",
-        category: "Transporte",
-        amount: -180,
-        type: "expense" as const,
-        userId,
-        budgetId,
-      },
-    ];
-
-    return {
-      id: userId,
-      email: authUser.email,
-      name: authUser.name,
-      activeBudgetId: budgetId,
-      categories: defaultCategories.map((cat) => ({
-        ...cat,
-        id: generateId(),
-        userId,
-      })),
-      budgets: [
-        {
-          id: budgetId,
-          name: "Orçamento João",
-          code: "PFJOAO01",
-          ownerId: userId,
-          collaborators: [],
-          entries: joaoEntries,
-          createdAt: new Date(2024, 9, 1).toISOString(),
           updatedAt: new Date().toISOString(),
         },
       ],
@@ -1299,20 +647,9 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       setIsLoading(false);
     }
   };
+
   const clearUser = () => {
     setCurrentUser(null);
-  };
-
-  const resetDemoData = () => {
-    // Clear existing demo user data to force reload with new fictional data
-    const demoUserId = btoa("demo@plannerfin.com");
-    localStorage.removeItem(`plannerfinUserData_${demoUserId}`);
-
-    const adminUserId = btoa("admin@plannerfin.com");
-    localStorage.removeItem(`plannerfinUserData_${adminUserId}`);
-
-    const joaoUserId = btoa("user@exemplo.com");
-    localStorage.removeItem(`plannerfinUserData_${joaoUserId}`);
   };
 
   const createBudget = async (name: string): Promise<string> => {
@@ -1363,7 +700,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     });
   };
 
-  const deleteBudget = (budgetId: string): boolean => {
+  const deleteBudget = async (budgetId: string): Promise<boolean> => {
     if (!currentUser) return false;
 
     // Can't delete if it's the only budget
@@ -1388,66 +725,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     return true;
   };
 
-  const leaveBudgetAsCollaborator = (budgetId: string): boolean => {
-    if (!currentUser) return false;
-
-    const targetBudget = currentUser.budgets.find((b) => b.id === budgetId);
-    if (!targetBudget) return false;
-
-    // Check if user is not the owner (i.e., is a collaborator)
-    if (targetBudget.ownerId === currentUser.id) {
-      return false; // Owners can't "leave", they can only delete
-    }
-
-    // Remove budget from current user's list
-    const updatedBudgets = currentUser.budgets.filter(
-      (budget) => budget.id !== budgetId,
-    );
-
-    // If the leaving budget is the active one, switch to another
-    let newActiveBudgetId = currentUser.activeBudgetId;
-    if (budgetId === currentUser.activeBudgetId && updatedBudgets.length > 0) {
-      newActiveBudgetId = updatedBudgets[0].id;
-    }
-
-    setCurrentUser({
-      ...currentUser,
-      budgets: updatedBudgets,
-      activeBudgetId: newActiveBudgetId,
-    });
-
-    // Remove user from the original budget's collaborators list
-    try {
-      const ownerKey = `plannerfinUserData_${targetBudget.ownerId}`;
-      const ownerData = JSON.parse(localStorage.getItem(ownerKey) || "{}");
-
-      if (ownerData.budgets) {
-        const updatedOwnerBudgets = ownerData.budgets.map((budget: Budget) =>
-          budget.id === budgetId
-            ? {
-                ...budget,
-                collaborators: budget.collaborators.filter(
-                  (id) => id !== currentUser.id,
-                ),
-              }
-            : budget,
-        );
-
-        localStorage.setItem(
-          ownerKey,
-          JSON.stringify({
-            ...ownerData,
-            budgets: updatedOwnerBudgets,
-          }),
-        );
-      }
-    } catch (error) {
-      console.warn("Could not update original budget collaborators:", error);
-    }
-
-    return true;
-  };
-
   const addEntry = async (
     entryData: Omit<BudgetEntry, "id" | "userId" | "budgetId">,
   ): Promise<void> => {
@@ -1463,25 +740,19 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         budgetId: currentUser.activeBudgetId,
       };
 
-      console.log("Adding entry:", newEntry);
-
-      let supabaseSuccess = false;
       if (useSupabase) {
         const savedEntryId =
           await SupabaseDataService.createBudgetEntry(newEntry);
         if (savedEntryId) {
           newEntry.id = savedEntryId;
-          supabaseSuccess = true;
-          console.log("Entry saved to Supabase successfully");
         } else {
           console.warn("Failed to save entry to Supabase, using localStorage");
-          // Automatically fallback to localStorage mode for future operations
           setUseSupabase(false);
           localStorage.setItem("plannerfinUseSupabase", "false");
         }
       }
 
-      // Always update local state regardless of Supabase success/failure
+      // Always update local state
       const updatedBudgets = currentUser.budgets.map((budget) =>
         budget.id === currentUser.activeBudgetId
           ? {
@@ -1496,25 +767,18 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         ...currentUser,
         budgets: updatedBudgets,
       });
-
-      console.log("Entry added successfully");
     } catch (error) {
       console.error("Error adding entry:", error);
-
-      // On any error, ensure we fallback to localStorage mode
-      if (useSupabase) {
-        console.warn("Switching to localStorage mode due to error");
-        setUseSupabase(false);
-        localStorage.setItem("plannerfinUseSupabase", "false");
-      }
-
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const updateEntry = (id: string, updates: Partial<BudgetEntry>) => {
+  const updateEntry = async (
+    id: string,
+    updates: Partial<BudgetEntry>,
+  ): Promise<void> => {
     if (!currentUser) return;
 
     const updatedBudgets = currentUser.budgets.map((budget) =>
@@ -1535,7 +799,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     });
   };
 
-  const deleteEntry = (id: string) => {
+  const deleteEntry = async (id: string): Promise<void> => {
     if (!currentUser) return;
 
     const updatedBudgets = currentUser.budgets.map((budget) =>
@@ -1554,7 +818,9 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     });
   };
 
-  const addCategory = (categoryData: Omit<Category, "id" | "userId">) => {
+  const addCategory = async (
+    categoryData: Omit<Category, "id" | "userId">,
+  ): Promise<void> => {
     if (!currentUser) return;
 
     const newCategory: Category = {
@@ -1569,7 +835,10 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     });
   };
 
-  const updateCategory = (id: string, updates: Partial<Category>) => {
+  const updateCategory = async (
+    id: string,
+    updates: Partial<Category>,
+  ): Promise<void> => {
     if (!currentUser) return;
 
     setCurrentUser({
@@ -1580,7 +849,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     });
   };
 
-  const deleteCategory = (id: string) => {
+  const deleteCategory = async (id: string): Promise<void> => {
     if (!currentUser) return;
 
     // Check if category is used in any entries
@@ -1605,7 +874,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     });
   };
 
-  const findBudgetByCode = (code: string): Budget | null => {
+  const findBudgetByCode = async (code: string): Promise<Budget | null> => {
     // Search through all users' data in localStorage to find budget by code
     const allKeys = Object.keys(localStorage);
     const userDataKeys = allKeys.filter((key) =>
@@ -1635,7 +904,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const targetBudget = findBudgetByCode(code);
+    const targetBudget = await findBudgetByCode(code);
 
     if (!targetBudget) {
       return false;
@@ -1663,33 +932,38 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       activeBudgetId: collaborativeBudget.id,
     });
 
-    // In a real app, we would also update the original budget's collaborators list
-    // For this demo, we'll update it in the original user's data
-    try {
-      const ownerKey = `plannerfinUserData_${targetBudget.ownerId}`;
-      const ownerData = JSON.parse(localStorage.getItem(ownerKey) || "{}");
+    return true;
+  };
 
-      if (ownerData.budgets) {
-        const updatedBudgets = ownerData.budgets.map((budget: Budget) =>
-          budget.id === targetBudget.id
-            ? {
-                ...budget,
-                collaborators: [...budget.collaborators, currentUser.id],
-              }
-            : budget,
-        );
+  const leaveBudgetAsCollaborator = async (
+    budgetId: string,
+  ): Promise<boolean> => {
+    if (!currentUser) return false;
 
-        localStorage.setItem(
-          ownerKey,
-          JSON.stringify({
-            ...ownerData,
-            budgets: updatedBudgets,
-          }),
-        );
-      }
-    } catch (error) {
-      console.warn("Could not update original budget collaborators:", error);
+    const targetBudget = currentUser.budgets.find((b) => b.id === budgetId);
+    if (!targetBudget) return false;
+
+    // Check if user is not the owner (i.e., is a collaborator)
+    if (targetBudget.ownerId === currentUser.id) {
+      return false; // Owners can't "leave", they can only delete
     }
+
+    // Remove budget from current user's list
+    const updatedBudgets = currentUser.budgets.filter(
+      (budget) => budget.id !== budgetId,
+    );
+
+    // If the leaving budget is the active one, switch to another
+    let newActiveBudgetId = currentUser.activeBudgetId;
+    if (budgetId === currentUser.activeBudgetId && updatedBudgets.length > 0) {
+      newActiveBudgetId = updatedBudgets[0].id;
+    }
+
+    setCurrentUser({
+      ...currentUser,
+      budgets: updatedBudgets,
+      activeBudgetId: newActiveBudgetId,
+    });
 
     return true;
   };
