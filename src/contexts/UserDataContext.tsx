@@ -19,6 +19,8 @@ class DataStorage {
   private static backupPrefix = "plannerfinBackup_";
 
   static saveUserData(userId: string, data: UserProfile): boolean {
+    if (typeof window === "undefined") return false;
+
     try {
       const dataWithVersion = {
         ...data,
@@ -45,6 +47,8 @@ class DataStorage {
   }
 
   static loadUserData(userId: string): UserProfile | null {
+    if (typeof window === "undefined") return null;
+
     try {
       const stored = localStorage.getItem(`${this.prefix}${userId}`);
       if (!stored) return null;
@@ -66,6 +70,8 @@ class DataStorage {
   }
 
   static createBackup(userId: string): boolean {
+    if (typeof window === "undefined") return false;
+
     try {
       const existing = localStorage.getItem(`${this.prefix}${userId}`);
       if (!existing) return false;
@@ -84,6 +90,8 @@ class DataStorage {
   }
 
   static recoverFromBackup(userId: string): UserProfile | null {
+    if (typeof window === "undefined") return null;
+
     try {
       const backupKeys = Object.keys(localStorage)
         .filter((key) => key.startsWith(`${this.backupPrefix}${userId}_`))
@@ -399,21 +407,47 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [useSupabase, setUseSupabase] = useState(true); // Default to Supabase
+  const [mounted, setMounted] = useState(false);
 
   // Load user data on mount
   useEffect(() => {
+    setMounted(true);
+
     const initializeApp = async () => {
+      // Aguardar montagem do componente para evitar RSL
+      if (typeof window === "undefined") return;
+
       // Initialize Supabase if needed
       if (useSupabase) {
         console.log("Initializing Supabase...");
         const connected = await SupabaseSetup.testConnection();
         if (connected) {
           await SupabaseSetup.ensureTablesExist();
+
+          // Test if we can actually perform operations
+          try {
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
+            if (session?.user) {
+              console.log("✅ Supabase ready for operations");
+            } else {
+              console.log("⚠️ No active session, will test on login");
+            }
+          } catch (testError) {
+            console.warn(
+              "Supabase test failed, falling back to localStorage:",
+              testError,
+            );
+            setUseSupabase(false);
+            localStorage.setItem("plannerfinUseSupabase", "false");
+          }
         } else {
           console.warn(
             "Supabase connection failed, falling back to localStorage",
           );
           setUseSupabase(false);
+          localStorage.setItem("plannerfinUseSupabase", "false");
         }
       }
 
@@ -441,6 +475,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
     // Listen for storage changes (when user logs in from another tab)
     const handleStorageChange = (e: StorageEvent) => {
+      if (typeof window === "undefined") return;
+
       if (e.key === "plannerfinUser") {
         const authUser = localStorage.getItem("plannerfinUser");
         if (authUser) {
@@ -456,24 +492,26 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", handleStorageChange);
+      return () => window.removeEventListener("storage", handleStorageChange);
+    }
   }, [useSupabase]);
 
   // Save user data whenever it changes with enhanced persistence
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && mounted && typeof window !== "undefined") {
       const success = DataStorage.saveUserData(currentUser.id, currentUser);
       if (!success) {
         console.warn("Failed to save user data to localStorage");
         // Could show a toast notification here
       }
     }
-  }, [currentUser]);
+  }, [currentUser, mounted]);
 
   // Auto-backup every 10 minutes
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !mounted || typeof window === "undefined") return;
 
     const interval = setInterval(
       () => {
@@ -486,7 +524,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     ); // 10 minutes
 
     return () => clearInterval(interval);
-  }, [currentUser]);
+  }, [currentUser, mounted]);
 
   const loadUserProfile = async (authUser: any) => {
     // Get current Supabase session to ensure we have the correct user ID
@@ -1425,15 +1463,23 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
       console.log("Adding entry:", newEntry);
 
+      let supabaseSuccess = false;
       if (useSupabase) {
         const savedEntryId =
           await SupabaseDataService.createBudgetEntry(newEntry);
-        if (!savedEntryId) {
-          throw new Error("Failed to save entry to Supabase");
+        if (savedEntryId) {
+          newEntry.id = savedEntryId;
+          supabaseSuccess = true;
+          console.log("Entry saved to Supabase successfully");
+        } else {
+          console.warn("Failed to save entry to Supabase, using localStorage");
+          // Automatically fallback to localStorage mode for future operations
+          setUseSupabase(false);
+          localStorage.setItem("plannerfinUseSupabase", "false");
         }
-        newEntry.id = savedEntryId;
       }
 
+      // Always update local state regardless of Supabase success/failure
       const updatedBudgets = currentUser.budgets.map((budget) =>
         budget.id === currentUser.activeBudgetId
           ? {
@@ -1452,6 +1498,14 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       console.log("Entry added successfully");
     } catch (error) {
       console.error("Error adding entry:", error);
+
+      // On any error, ensure we fallback to localStorage mode
+      if (useSupabase) {
+        console.warn("Switching to localStorage mode due to error");
+        setUseSupabase(false);
+        localStorage.setItem("plannerfinUseSupabase", "false");
+      }
+
       throw error;
     } finally {
       setIsLoading(false);

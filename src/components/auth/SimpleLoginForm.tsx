@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,13 @@ export default function SimpleLoginForm({ onLogin }: SimpleLoginFormProps) {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
+
+  // Evitar problemas de RSL
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +75,8 @@ export default function SimpleLoginForm({ onLogin }: SimpleLoginFormProps) {
   };
 
   const handleDemoLogin = async () => {
+    if (!mounted) return;
+
     setEmail("demo@plannerfin.com");
     setPassword("123456");
     setIsLoading(true);
@@ -134,6 +142,15 @@ export default function SimpleLoginForm({ onLogin }: SimpleLoginFormProps) {
       setIsLoading(false);
     }
   };
+
+  // Não renderizar até estar montado para evitar problemas de RSL
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

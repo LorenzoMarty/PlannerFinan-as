@@ -18,9 +18,15 @@ import NotFound from "./pages/NotFound";
 // Protected Route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+
     const checkAuth = async () => {
+      // Aguardar montagem do componente para evitar RSL
+      if (typeof window === "undefined") return;
+
       // Check both localStorage and Supabase session
       const localUser = localStorage.getItem("plannerfinUser");
       const {
@@ -38,7 +44,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || !session) {
         setIsAuthenticated(false);
-        localStorage.removeItem("plannerfinUser");
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("plannerfinUser");
+        }
       } else if (event === "SIGNED_IN" && session.user) {
         setIsAuthenticated(true);
       }
@@ -47,7 +55,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (isAuthenticated === null) {
+  if (isAuthenticated === null || !mounted) {
     // Loading state
     return (
       <div className="min-h-screen flex items-center justify-center">

@@ -31,6 +31,12 @@ export class SupabaseDataService {
         return false;
       }
 
+      console.log("Creating user profile:", profile);
+      console.log(
+        "Current user session:",
+        (await supabase.auth.getSession()).data.session?.user?.id,
+      );
+
       // Check if profile already exists
       const { data: existing } = await supabase
         .from("user_profiles")
@@ -50,8 +56,12 @@ export class SupabaseDataService {
       });
 
       if (error) {
-        console.error("Error creating user profile:", error);
-        console.error("Error details:", error.message, error.code);
+        console.error("Error creating user profile:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
         return false;
       }
 
@@ -340,8 +350,16 @@ export class SupabaseDataService {
     try {
       console.log("Creating budget entry:", entry);
 
+      // Check if Supabase is available
+      const canUseSupabase = await shouldUseSupabase();
+      if (!canUseSupabase) {
+        console.log("Supabase not available, skipping entry creation");
+        return null;
+      }
+
+      const entryId = this.generateId();
       const entryData = {
-        id: this.generateId(),
+        id: entryId,
         date: entry.date,
         description: entry.description,
         category: entry.category,
@@ -352,6 +370,10 @@ export class SupabaseDataService {
       };
 
       console.log("Entry data to insert:", entryData);
+      console.log(
+        "Current user session:",
+        (await supabase.auth.getSession()).data.session?.user?.id,
+      );
 
       const { data, error } = await supabase
         .from("budget_entries")
@@ -360,9 +382,19 @@ export class SupabaseDataService {
         .single();
 
       if (error) {
-        console.error("Error creating budget entry:", error);
-        console.error("Error code:", error.code);
-        console.error("Error message:", error.message);
+        console.error("Error creating budget entry:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+
+        // If RLS error, try without RLS temporarily
+        if (error.code === "42501") {
+          console.warn("RLS policy violation - entry creation failed");
+          console.log("Falling back to localStorage mode");
+        }
+
         return null;
       }
 

@@ -1,16 +1,22 @@
-import SimpleLoginForm from "@/components/auth/SimpleLoginForm";
+import LoginForm from "@/components/auth/LoginForm";
 import { useNavigate } from "react-router-dom";
 import { useUserData } from "@/contexts/UserDataContext";
 import { supabase } from "@/lib/supabase";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const Index = () => {
   const navigate = useNavigate();
   const { setUser } = useUserData();
+  const [mounted, setMounted] = useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
+    setMounted(true);
+
     const checkAuth = async () => {
+      // Aguardar montagem do componente para evitar RSL
+      if (typeof window === "undefined") return;
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -41,6 +47,8 @@ const Index = () => {
   }, [navigate, setUser]);
 
   const handleLogin = async (email: string, password: string) => {
+    if (typeof window === "undefined") return;
+
     try {
       // Get the current session after login
       const {
@@ -72,7 +80,16 @@ const Index = () => {
     }
   };
 
-  return <SimpleLoginForm onLogin={handleLogin} />;
+  // Não renderizar até estar montado para evitar problemas de RSL
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return <LoginForm onLogin={handleLogin} />;
 };
 
 export default Index;
