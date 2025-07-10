@@ -435,6 +435,41 @@ export default function LoginForm() {
                         </div>
                       )}
                     </Button>
+
+                    {/* Demo Users */}
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-xs text-muted-foreground mb-2 text-center">
+                        Ou use uma conta demo:
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          disabled={isLoading}
+                          onClick={() => {
+                            setEmail("demo@plannerfin.com");
+                            setPassword("123456");
+                          }}
+                        >
+                          Demo
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          disabled={isLoading}
+                          onClick={() => {
+                            setEmail("admin@plannerfin.com");
+                            setPassword("admin123");
+                          }}
+                        >
+                          Admin
+                        </Button>
+                      </div>
+                    </div>
                   </form>
                 </TabsContent>
 
