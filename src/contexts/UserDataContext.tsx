@@ -8,6 +8,7 @@ import React, {
 import { SupabaseDataService } from "@/services/SupabaseDataService";
 import { SupabaseSetup } from "@/lib/supabase-setup";
 import { supabase } from "@/lib/supabase";
+import { setupMockAuthentication } from "@/lib/auth-mock";
 
 // Data versioning for migrations
 const CURRENT_DATA_VERSION = "1.0.0";
