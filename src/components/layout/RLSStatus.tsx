@@ -5,6 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { checkRLSStatus, testRLSPolicies } from "@/lib/test-rls";
 import { setupMockAuthentication, getCurrentMockUser } from "@/lib/auth-mock";
+import {
+  diagnoseRLSIssues,
+  repairRLSIssues,
+  displayDiagnostics,
+} from "@/lib/rls-diagnostics";
 
 interface RLSStatusProps {
   showDetails?: boolean;
