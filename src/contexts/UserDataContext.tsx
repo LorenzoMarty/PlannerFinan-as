@@ -503,11 +503,11 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         // Could show a toast notification here
       }
     }
-  }, [currentUser, mounted]);
+  }, [currentUser]);
 
   // Auto-backup every 10 minutes
   useEffect(() => {
-    if (!currentUser || !mounted || typeof window === "undefined") return;
+    if (!currentUser || typeof window === "undefined") return;
 
     const interval = setInterval(
       () => {
