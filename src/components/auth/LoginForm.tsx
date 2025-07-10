@@ -41,6 +41,23 @@ export default function LoginForm() {
   const [activeTab, setActiveTab] = useState("login");
   const [error, setError] = useState("");
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    const checkAuthAndRedirect = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const localUser = localStorage.getItem("plannerfinUser");
+
+      if (session?.user && localUser) {
+        navigate("/dashboard", { replace: true });
+      }
+    };
+
+    checkAuthAndRedirect();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
