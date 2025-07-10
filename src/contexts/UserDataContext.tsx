@@ -1443,15 +1443,23 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
       console.log("Adding entry:", newEntry);
 
+      let supabaseSuccess = false;
       if (useSupabase) {
         const savedEntryId =
           await SupabaseDataService.createBudgetEntry(newEntry);
-        if (!savedEntryId) {
-          throw new Error("Failed to save entry to Supabase");
+        if (savedEntryId) {
+          newEntry.id = savedEntryId;
+          supabaseSuccess = true;
+          console.log("Entry saved to Supabase successfully");
+        } else {
+          console.warn("Failed to save entry to Supabase, using localStorage");
+          // Automatically fallback to localStorage mode for future operations
+          setUseSupabase(false);
+          localStorage.setItem("plannerfinUseSupabase", "false");
         }
-        newEntry.id = savedEntryId;
       }
 
+      // Always update local state regardless of Supabase success/failure
       const updatedBudgets = currentUser.budgets.map((budget) =>
         budget.id === currentUser.activeBudgetId
           ? {
@@ -1470,6 +1478,14 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       console.log("Entry added successfully");
     } catch (error) {
       console.error("Error adding entry:", error);
+
+      // On any error, ensure we fallback to localStorage mode
+      if (useSupabase) {
+        console.warn("Switching to localStorage mode due to error");
+        setUseSupabase(false);
+        localStorage.setItem("plannerfinUseSupabase", "false");
+      }
+
       throw error;
     } finally {
       setIsLoading(false);
