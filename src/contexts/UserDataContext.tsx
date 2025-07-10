@@ -407,12 +407,9 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [useSupabase, setUseSupabase] = useState(true); // Default to Supabase
-  const [mounted, setMounted] = useState(false);
 
   // Load user data on mount
   useEffect(() => {
-    setMounted(true);
-
     const initializeApp = async () => {
       if (typeof window === "undefined") return;
 
