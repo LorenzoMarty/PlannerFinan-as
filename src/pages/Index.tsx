@@ -89,7 +89,7 @@ const Index = () => {
     );
   }
 
-  return <SimpleLoginForm onLogin={handleLogin} />;
+  return <LoginForm onLogin={handleLogin} />;
 };
 
 export default Index;
