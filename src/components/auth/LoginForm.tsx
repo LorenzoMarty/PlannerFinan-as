@@ -12,71 +12,57 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  AlertCircle,
-  Calculator,
-  TrendingUp,
-  Shield,
-  Users,
-  BarChart3,
   Eye,
   EyeOff,
+  AlertCircle,
   ArrowRight,
+  Shield,
+  Calculator,
+  TrendingUp,
+  Users,
+  BarChart3,
   CheckCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { signIn, signUp } from "@/lib/supabase"; // ✅ importar helpers
+import { signIn, signUp } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
-interface LoginFormProps {
-  onLogin: () => void; // ✅ não precisa passar email/senha pois sessão já está salva
-}
-
-export default function LoginForm({ onLogin }: LoginFormProps) {
+export default function LoginForm() {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
-
-  // ✅ separar erros para cada aba
-  const [loginError, setLoginError] = useState("");
-  const [signupError, setSignupError] = useState("");
-
+  const [error, setError] = useState("");
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError("");
-
     if (!email || !password) {
-      setLoginError("Por favor, preencha todos os campos");
+      setError("Preencha todos os campos");
       return;
     }
-
+    setError("");
     setIsLoading(true);
     try {
-      const { error } = await signIn(email, password);
+      const { data, error } = await signIn(email, password);
       if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          setLoginError("Email ou senha incorretos");
-        } else {
-          setLoginError("Erro ao fazer login. Tente novamente.");
-        }
+        setError("Email ou senha inválidos");
         return;
       }
-
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta ao PlannerFin",
-      });
-      onLogin(); // ✅ login concluído
+      if (data.session) {
+        toast({
+          title: "Login realizado",
+          description: "Sessão iniciada com sucesso!",
+        });
+      }
     } catch (err) {
-      console.error("Login error:", err);
-      setLoginError("Erro inesperado. Tente novamente.");
+      console.error(err);
+      setError("Erro inesperado ao fazer login");
     } finally {
       setIsLoading(false);
     }
@@ -84,51 +70,34 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSignupError("");
-
     if (!email || !password || !confirmPassword || !name) {
-      setSignupError("Por favor, preencha todos os campos");
+      setError("Preencha todos os campos");
       return;
     }
     if (password !== confirmPassword) {
-      setSignupError("As senhas não coincidem");
+      setError("As senhas não coincidem");
       return;
     }
     if (password.length < 6) {
-      setSignupError("A senha deve ter pelo menos 6 caracteres");
+      setError("Senha deve ter no mínimo 6 caracteres");
       return;
     }
-
+    setError("");
     setIsLoading(true);
     try {
-      const { error, data } = await signUp(email, password);
+      const { data, error } = await signUp(email, password, name);
       if (error) {
-        if (error.message.includes("User already registered")) {
-          setSignupError("Este email já está cadastrado. Tente fazer login.");
-        } else {
-          setSignupError("Erro ao criar conta. Tente novamente.");
-        }
+        setError(error.message);
         return;
       }
-
-      if (data?.user) {
-        if (data.user.email_confirmed_at) {
-          toast({
-            title: "Conta criada com sucesso!",
-            description: "Bem-vindo ao PlannerFin",
-          });
-          onLogin();
-        } else {
-          toast({
-            title: "Conta criada!",
-            description: "Verifique seu email para confirmar a conta",
-          });
-          setActiveTab("login");
-        }
-      }
+      toast({
+        title: "Conta criada!",
+        description: "Verifique seu email para confirmar",
+      });
+      setActiveTab("login");
     } catch (err) {
-      console.error("Signup error:", err);
-      setSignupError("Erro inesperado. Tente novamente.");
+      console.error(err);
+      setError("Erro inesperado ao criar conta");
     } finally {
       setIsLoading(false);
     }
@@ -157,360 +126,160 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     },
   ];
 
-  return (
-    <div className="min-h-screen flex bg-gradient-to-br from-primary/10 via-background to-accent/10">
-      {/* Left Side - Branding and Features */}
-      <div className="hidden lg:flex lg:flex-1 lg:flex-col lg:justify-center lg:px-8 xl:px-12">
+return (
+    <div className="min-h-screen flex">
+      {/* Branding */}
+      <div className="hidden lg:flex flex-1 flex-col justify-center px-8">
         <div className="max-w-md">
-          {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-primary rounded-xl flex justify-center items-center">
               <Calculator className="w-6 h-6 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">PlannerFin</h1>
-              <p className="text-muted-foreground">Controle Financeiro</p>
-            </div>
+            <h1 className="text-3xl font-bold">PlannerFin</h1>
           </div>
-
-          {/* Headline */}
-          <div className="mb-8">
-            <h2 className="text-4xl font-bold text-foreground mb-4 leading-tight">
-              Transforme sua{" "}
-              <span className="text-primary">gestão financeira</span>
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              A plataforma completa para controlar seus orçamentos de forma
-              colaborativa e inteligente. Simples, seguro e totalmente
-              personalizável.
-            </p>
-          </div>
-
-          {/* Features */}
-          <div className="space-y-4">
-            {features.map((feature, index) => (
-              <div key={feature.title} className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <feature.icon className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {feature.description}
-                  </p>
-                </div>
+          <h2 className="text-4xl font-bold mb-4">
+            Controle suas <span className="text-primary">Finanças</span>
+          </h2>
+          <p className="mb-8 text-muted-foreground">
+            Simples, colaborativo e seguro.
+          </p>
+          {features.map((f) => (
+            <div key={f.title} className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 bg-primary/10 rounded flex items-center justify-center">
+                <f.icon className="w-5 h-5 text-primary" />
               </div>
-            ))}
-          </div>
-
-          {/* Trust indicators */}
-          <div className="mt-8 pt-8 border-t border-border">
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                <span>Dados Criptografados</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                <span>100% Gratuito</span>
+              <div>
+                <h3 className="font-semibold">{f.title}</h3>
+                <p className="text-sm text-muted-foreground">{f.description}</p>
               </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:max-w-md xl:max-w-lg">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                <Calculator className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <div className="text-left">
-                <h1 className="text-xl font-bold text-foreground">
-                  PlannerFin
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  Controle Financeiro
-                </p>
-              </div>
-            </div>
-          </div>
+      {/* Form */}
+      <div className="flex-1 flex items-center justify-center p-6 max-w-md mx-auto">
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <Shield className="w-6 h-6 text-primary mx-auto mb-2" />
+            <CardTitle>
+              {activeTab === "login" ? "Entrar" : "Criar Conta"}
+            </CardTitle>
+            <CardDescription>
+              {activeTab === "login"
+                ? "Acesse sua conta"
+                : "Cadastre-se gratuitamente"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid grid-cols-2 mb-6">
+                <TabsTrigger value="login">Entrar</TabsTrigger>
+                <TabsTrigger value="signup">Criar Conta</TabsTrigger>
+              </TabsList>
 
-          <Card className="border-2 shadow-xl">
-            <CardHeader className="text-center pb-4">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Shield className="w-5 h-5 text-primary" />
-                <CardTitle className="text-xl">Bem-vindo</CardTitle>
-              </div>
-              <CardDescription className="text-base">
-                {activeTab === "login"
-                  ? "Entre na sua conta para continuar"
-                  : "Crie sua conta gratuitamente"}
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="pt-0">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger
-                    value="login"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    Entrar
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="signup"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    Criar Conta
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="login">
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    {loginError && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{loginError}</AlertDescription>
-                      </Alert>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium">
-                        Email
-                      </Label>
+              <TabsContent value="login">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="w-4 h-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label>Senha</Label>
+                    <div className="relative">
                       <Input
-                        id="email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="h-11"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         required
                       />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-sm font-medium">
-                        Senha
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="h-11 pr-10"
-                          required
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="remember"
-                          checked={rememberMe}
-                          onCheckedChange={setRememberMe}
-                        />
-                        <Label
-                          htmlFor="remember"
-                          className="text-sm text-muted-foreground"
-                        >
-                          Lembrar de mim
-                        </Label>
-                      </div>
                       <Button
-                        variant="link"
-                        className="px-0 text-sm text-primary"
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-2 top-2"
                       >
-                        Esqueci a senha
+                        {showPassword ? <EyeOff /> : <Eye />}
                       </Button>
                     </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="remember"
+                      checked={rememberMe}
+                      onCheckedChange={setRememberMe}
+                    />
+                    <Label htmlFor="remember">Lembrar de mim</Label>
+                  </div>
+                  <Button type="submit" disabled={isLoading} className="w-full">
+                    {isLoading ? "Entrando..." : "Entrar"}
+                  </Button>
+                </form>
+              </TabsContent>
 
-                    <Button
-                      type="submit"
-                      className="w-full h-11 text-base font-medium"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
-                          Entrando...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          Entrar
-                          <ArrowRight className="w-4 h-4" />
-                        </div>
-                      )}
-                    </Button>
-                  </form>
-                </TabsContent>
-
-                <TabsContent value="signup">
-                  <form onSubmit={handleSignup} className="space-y-4">
-                    {signupError && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{signupError}</AlertDescription>
-                      </Alert>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium">
-                        Nome Completo
-                      </Label>
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="Seu nome completo"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="h-11"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="signup-email"
-                        className="text-sm font-medium"
-                      >
-                        Email
-                      </Label>
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="h-11"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="signup-password"
-                        className="text-sm font-medium"
-                      >
-                        Senha
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="signup-password"
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Mínimo 6 caracteres"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="h-11 pr-10"
-                          required
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="confirm-password"
-                        className="text-sm font-medium"
-                      >
-                        Confirmar Senha
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="confirm-password"
-                          type={showConfirmPassword ? "text" : "password"}
-                          placeholder="Confirme sua senha"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="h-11 pr-10"
-                          required
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                          onClick={() =>
-                            setShowConfirmPassword(!showConfirmPassword)
-                          }
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-muted-foreground">
-                      Ao criar uma conta, você concorda com nossos{" "}
-                      <Button variant="link" className="p-0 h-auto text-xs">
-                        Termos de Uso
-                      </Button>{" "}
-                      e{" "}
-                      <Button variant="link" className="p-0 h-auto text-xs">
-                        Política de Privacidade
-                      </Button>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full h-11 text-base font-medium"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-primary-foreground/20 border-t-primary-foreground rounded-full animate-spin" />
-                          Criando conta...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          Criar Conta
-                          <ArrowRight className="w-4 h-4" />
-                        </div>
-                      )}
-                    </Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
+              <TabsContent value="signup">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="w-4 h-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+                <form onSubmit={handleSignup} className="space-y-4">
+                  <div>
+                    <Label>Nome</Label>
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label>Senha</Label>
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label>Confirmar Senha</Label>
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={isLoading} className="w-full">
+                    {isLoading ? "Criando..." : "Criar Conta"}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
