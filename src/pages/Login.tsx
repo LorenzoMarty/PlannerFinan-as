@@ -7,14 +7,9 @@ import { useEffect, useState } from "react";
 export default function Login() {
   const navigate = useNavigate();
   const { setUser } = useUserData();
-  const [mounted, setMounted] = useState(false);
-
   // Check if user is already logged in
   useEffect(() => {
-    setMounted(true);
-
     const checkAuth = async () => {
-      // Aguardar montagem do componente para evitar RSL
       if (typeof window === "undefined") return;
 
       const {
@@ -79,15 +74,6 @@ export default function Login() {
       console.error("Login handling error:", error);
     }
   };
-
-  // Não renderizar até estar montado para evitar problemas de RSL
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return <LoginForm onLogin={handleLogin} />;
 }
