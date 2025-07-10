@@ -1,10 +1,22 @@
-import { supabase } from "@/lib/supabase";
+import {
+  supabase,
+  isUsingDemoCredentials,
+  isSupabaseAvailable,
+} from "@/lib/supabase";
 import type {
   BudgetEntry,
   Category,
   Budget,
   UserProfile,
 } from "@/contexts/UserDataContext";
+
+// Helper to check if we should use Supabase
+async function shouldUseSupabase(): Promise<boolean> {
+  if (isUsingDemoCredentials) {
+    return false;
+  }
+  return await isSupabaseAvailable();
+}
 
 export class SupabaseDataService {
   // ==================== USER PROFILES ====================
@@ -13,6 +25,12 @@ export class SupabaseDataService {
     profile: Omit<UserProfile, "budgets" | "categories" | "activeBudgetId">,
   ): Promise<boolean> {
     try {
+      const canUseSupabase = await shouldUseSupabase();
+      if (!canUseSupabase) {
+        console.log("Supabase not available, skipping user profile creation");
+        return false;
+      }
+
       // Check if profile already exists
       const { data: existing } = await supabase
         .from("user_profiles")
@@ -48,6 +66,12 @@ export class SupabaseDataService {
   static async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
       console.log("Getting user profile for:", userId);
+
+      const canUseSupabase = await shouldUseSupabase();
+      if (!canUseSupabase) {
+        console.log("Supabase not available, returning null");
+        return null;
+      }
 
       // Get user profile
       const { data: profile, error: profileError } = await supabase
