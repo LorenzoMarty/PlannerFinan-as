@@ -1,9 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Get Supabase configuration from environment variables or use defaults
-const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL || "https://demo.supabase.co";
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "demo-key";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase =
+  supabaseClient ||
+  ({
+    from: () => ({ select: () => Promise.resolve({ data: [], error: null }) }),
+    auth: { getSession: () => Promise.resolve({ data: { session: null }, error: null }) },
+  } as any);
 
 // Track if we're using demo credentials
 export const isUsingDemoCredentials =
