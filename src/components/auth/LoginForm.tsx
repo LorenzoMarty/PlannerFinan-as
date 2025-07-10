@@ -273,10 +273,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
                 <TabsContent value="login">
                   <form onSubmit={handleLogin} className="space-y-4">
-                    {error && (
+                    {loginError && (
                       <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
+                        <AlertDescription>{loginError}</AlertDescription>
                       </Alert>
                     )}
 
@@ -369,10 +369,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
                 <TabsContent value="signup">
                   <form onSubmit={handleSignup} className="space-y-4">
-                    {error && (
+                    {signupError && (
                       <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
+                        <AlertDescription>{signupError}</AlertDescription>
                       </Alert>
                     )}
 
