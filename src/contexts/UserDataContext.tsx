@@ -8,6 +8,7 @@ import React, {
 import { SupabaseDataService } from "@/services/SupabaseDataService";
 import { SupabaseSetup } from "@/lib/supabase-setup";
 import { supabase } from "@/lib/supabase";
+import { setupMockAuthentication } from "@/lib/auth-mock";
 
 // Data versioning for migrations
 const CURRENT_DATA_VERSION = "1.0.0";
@@ -416,6 +417,13 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       // Initialize Supabase if needed
       if (useSupabase) {
         console.log("Initializing Supabase...");
+
+        // Set up mock authentication for RLS policies
+        const authSetup = await setupMockAuthentication();
+        if (authSetup) {
+          console.log("🔧 Mock authentication established for RLS");
+        }
+
         const connected = await SupabaseSetup.testConnection();
         if (connected) {
           await SupabaseSetup.ensureTablesExist();

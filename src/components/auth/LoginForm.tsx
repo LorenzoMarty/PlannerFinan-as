@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +25,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { signIn, signUp } from "@/lib/supabase";
+import { signIn, signUp, supabase } from "@/lib/supabase";
+import { SupabaseDataService } from "@/services/SupabaseDataService";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LoginForm() {
@@ -39,6 +41,23 @@ export default function LoginForm() {
   const [activeTab, setActiveTab] = useState("login");
   const [error, setError] = useState("");
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Check if user is already authenticated and redirect
+  useEffect(() => {
+    const checkAuthAndRedirect = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const localUser = localStorage.getItem("plannerfinUser");
+
+      if (session?.user && localUser) {
+        navigate("/dashboard", { replace: true });
+      }
+    };
+
+    checkAuthAndRedirect();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,22 +65,58 @@ export default function LoginForm() {
       setError("Preencha todos os campos");
       return;
     }
+
     setError("");
     setIsLoading(true);
+
     try {
       const { data, error } = await signIn(email, password);
+
       if (error) {
-        setError("Email ou senha inválidos");
+        console.error("Login error:", error);
+        if (error.message.includes("Invalid login credentials")) {
+          setError("Email ou senha inválidos");
+        } else if (error.message.includes("Email not confirmed")) {
+          setError("Confirme seu email antes de fazer login");
+        } else {
+          setError(error.message);
+        }
         return;
       }
-      if (data.session) {
+
+      if (data.session?.user) {
+        // Store user data in localStorage for ProtectedRoute compatibility
+        const userData = {
+          id: data.session.user.id,
+          email: data.session.user.email || email,
+          name: data.session.user.user_metadata?.name || name || "Usuário",
+          authenticated: true,
+        };
+
+        localStorage.setItem("plannerfinUser", JSON.stringify(userData));
+
+        // Ensure user profile exists in Supabase
+        try {
+          await SupabaseDataService.createUserProfile({
+            id: data.session.user.id,
+            email: userData.email,
+            name: userData.name,
+          });
+        } catch (profileError) {
+          console.warn("Profile creation warning:", profileError);
+          // Not a critical error, continue with login
+        }
+
         toast({
           title: "Login realizado",
-          description: "Sessão iniciada com sucesso!",
+          description: "Bem-vindo de volta!",
         });
+
+        // Navigate to dashboard
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
       setError("Erro inesperado ao fazer login");
     } finally {
       setIsLoading(false);
@@ -70,6 +125,8 @@ export default function LoginForm() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
     if (!email || !password || !confirmPassword || !name) {
       setError("Preencha todos os campos");
       return;
@@ -82,21 +139,66 @@ export default function LoginForm() {
       setError("Senha deve ter no mínimo 6 caracteres");
       return;
     }
+
     setError("");
     setIsLoading(true);
+
     try {
       const { data, error } = await signUp(email, password, name);
+
       if (error) {
-        setError(error.message);
+        console.error("Signup error:", error);
+        if (error.message.includes("User already registered")) {
+          setError("Este email já está cadastrado. Tente fazer login.");
+        } else if (error.message.includes("Password should be at least")) {
+          setError("Senha deve ter pelo menos 6 caracteres");
+        } else {
+          setError(error.message);
+        }
         return;
       }
-      toast({
-        title: "Conta criada!",
-        description: "Verifique seu email para confirmar",
-      });
-      setActiveTab("login");
+
+      if (data.user) {
+        // Check if email confirmation is required
+        if (!data.session) {
+          toast({
+            title: "Conta criada!",
+            description: "Verifique seu email para confirmar a conta",
+          });
+          setActiveTab("login");
+        } else {
+          // If no email confirmation required (like with demo users)
+          const userData = {
+            id: data.user.id,
+            email: data.user.email || email,
+            name: name,
+            authenticated: true,
+          };
+
+          localStorage.setItem("plannerfinUser", JSON.stringify(userData));
+
+          // Create user profile in Supabase
+          try {
+            await SupabaseDataService.createUserProfile({
+              id: data.user.id,
+              email: userData.email,
+              name: userData.name,
+            });
+          } catch (profileError) {
+            console.warn("Profile creation warning:", profileError);
+          }
+
+          toast({
+            title: "Conta criada!",
+            description: "Bem-vindo ao PlannerFin!",
+          });
+
+          // Navigate to dashboard
+          navigate("/dashboard", { replace: true });
+        }
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Signup error:", err);
       setError("Erro inesperado ao criar conta");
     } finally {
       setIsLoading(false);
@@ -242,10 +344,10 @@ export default function LoginForm() {
 
                 <TabsContent value="login">
                   <form onSubmit={handleLogin} className="space-y-4">
-                    {loginError && (
+                    {error && activeTab === "login" && (
                       <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{loginError}</AlertDescription>
+                        <AlertDescription>{error}</AlertDescription>
                       </Alert>
                     )}
 
@@ -333,15 +435,50 @@ export default function LoginForm() {
                         </div>
                       )}
                     </Button>
+
+                    {/* Demo Users */}
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-xs text-muted-foreground mb-2 text-center">
+                        Ou use uma conta demo:
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          disabled={isLoading}
+                          onClick={() => {
+                            setEmail("demo@plannerfin.com");
+                            setPassword("123456");
+                          }}
+                        >
+                          Demo
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs"
+                          disabled={isLoading}
+                          onClick={() => {
+                            setEmail("admin@plannerfin.com");
+                            setPassword("admin123");
+                          }}
+                        >
+                          Admin
+                        </Button>
+                      </div>
+                    </div>
                   </form>
                 </TabsContent>
 
                 <TabsContent value="signup">
                   <form onSubmit={handleSignup} className="space-y-4">
-                    {signupError && (
+                    {error && activeTab === "signup" && (
                       <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{signupError}</AlertDescription>
+                        <AlertDescription>{error}</AlertDescription>
                       </Alert>
                     )}
 

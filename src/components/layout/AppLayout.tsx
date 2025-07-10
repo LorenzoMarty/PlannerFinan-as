@@ -4,6 +4,7 @@ import { useUserData } from "@/contexts/UserDataContext";
 import { Button } from "@/components/ui/button";
 import { BackupStatusIndicator } from "./BackupStatusIndicator";
 import { SupabaseStatus } from "./SupabaseStatus";
+import { RLSStatus } from "./RLSStatus";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -252,6 +253,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-2">
+              <RLSStatus />
               <SupabaseStatus />
               <BackupStatusIndicator />
             </div>
