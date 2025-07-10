@@ -414,7 +414,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     setMounted(true);
 
     const initializeApp = async () => {
-      // Aguardar montagem do componente para evitar RSL
       if (typeof window === "undefined") return;
 
       // Initialize Supabase if needed
