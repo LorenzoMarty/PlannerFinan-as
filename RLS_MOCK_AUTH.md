@@ -84,17 +84,51 @@ No cabeçalho da aplicação, você verá:
 
 ## Resolução de Problemas
 
-### Se as policies não estiverem funcionando:
+### ⚠️ **PROBLEMA PRINCIPAL: Usuário sem permissão de escrita**
 
-1. Verifique o console para mensagens de erro
-2. Use o botão "Setup Auth" no componente de status
-3. Execute um teste completo com "Test RLS"
+Se você está vendo que "o usuário não tem permissão de escrever", siga estes passos:
 
-### Mensagens comuns:
+#### 1. **Execute o SQL de correção no Supabase:**
 
-- `⚠️ Could not establish authentication for RLS policies`: Execute setup manual
-- `❌ No authenticated session found`: Verifique configuração do Supabase
-- `❌ Profile creation failed`: Possível problema com policies RLS
+```sql
+-- Cole e execute o arquivo 'supabase-rls-write-permissions.sql' no SQL Editor do Supabase
+```
+
+#### 2. **Use as ferramentas de diagnóstico no navegador:**
+
+- Abra o console do navegador (F12)
+- Use os botões no indicador RLS no cabeçalho:
+  - **"Diagnose"**: Identifica problemas específicos
+  - **"Repair"**: Tenta corrigir automaticamente
+  - **"Test RLS"**: Verifica se tudo está funcionando
+
+#### 3. **Comandos manuais no console:**
+
+```javascript
+// Diagnosticar problemas
+import {
+  diagnoseRLSIssues,
+  displayDiagnostics,
+} from "./src/lib/rls-diagnostics";
+const results = await diagnoseRLSIssues();
+displayDiagnostics(results);
+
+// Tentar reparar automaticamente
+import { repairRLSIssues } from "./src/lib/rls-diagnostics";
+await repairRLSIssues();
+
+// Configurar autenticação manualmente
+import { setupMockAuthentication } from "./src/lib/auth-mock";
+await setupMockAuthentication();
+```
+
+### Mensagens comuns e soluções:
+
+- **`❌ Profile creation failed`**: Execute o SQL de permissões RLS
+- **`❌ Budget creation failed`**: Verifique se user_profiles existe
+- **`⚠️ Could not establish authentication`**: Use "Setup Auth"
+- **`❌ No authenticated session found`**: Verifique configuração do Supabase
+- **`Permission denied`**: Execute `supabase-rls-write-permissions.sql`
 
 ## Compatibilidade
 
