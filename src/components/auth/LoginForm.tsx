@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +25,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { signIn, signUp } from "@/lib/supabase";
+import { signIn, signUp, supabase } from "@/lib/supabase";
+import { SupabaseDataService } from "@/services/SupabaseDataService";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LoginForm() {
