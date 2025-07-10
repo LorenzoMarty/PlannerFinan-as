@@ -65,22 +65,58 @@ export default function LoginForm() {
       setError("Preencha todos os campos");
       return;
     }
+
     setError("");
     setIsLoading(true);
+
     try {
       const { data, error } = await signIn(email, password);
+
       if (error) {
-        setError("Email ou senha inválidos");
+        console.error("Login error:", error);
+        if (error.message.includes("Invalid login credentials")) {
+          setError("Email ou senha inválidos");
+        } else if (error.message.includes("Email not confirmed")) {
+          setError("Confirme seu email antes de fazer login");
+        } else {
+          setError(error.message);
+        }
         return;
       }
-      if (data.session) {
+
+      if (data.session?.user) {
+        // Store user data in localStorage for ProtectedRoute compatibility
+        const userData = {
+          id: data.session.user.id,
+          email: data.session.user.email || email,
+          name: data.session.user.user_metadata?.name || name || "Usuário",
+          authenticated: true,
+        };
+
+        localStorage.setItem("plannerfinUser", JSON.stringify(userData));
+
+        // Ensure user profile exists in Supabase
+        try {
+          await SupabaseDataService.createUserProfile({
+            id: data.session.user.id,
+            email: userData.email,
+            name: userData.name,
+          });
+        } catch (profileError) {
+          console.warn("Profile creation warning:", profileError);
+          // Not a critical error, continue with login
+        }
+
         toast({
           title: "Login realizado",
-          description: "Sessão iniciada com sucesso!",
+          description: "Bem-vindo de volta!",
         });
+
+        // Navigate to dashboard
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
       setError("Erro inesperado ao fazer login");
     } finally {
       setIsLoading(false);
