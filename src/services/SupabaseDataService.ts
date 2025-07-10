@@ -1,36 +1,10 @@
-import {
-  supabase,
-  isUsingDemoCredentials,
-  isSupabaseAvailable,
-} from "@/lib/supabase";
-import { ensureAuthenticated } from "@/lib/auth-mock";
+import { supabase } from "@/lib/supabase";
 import type {
   BudgetEntry,
   Category,
   Budget,
   UserProfile,
 } from "@/contexts/UserDataContext";
-
-// Helper to check if we should use Supabase with authentication ensured
-async function shouldUseSupabase(): Promise<boolean> {
-  if (isUsingDemoCredentials) {
-    return false;
-  }
-
-  const isAvailable = await isSupabaseAvailable();
-  if (!isAvailable) {
-    return false;
-  }
-
-  // Ensure authentication for RLS policies to work
-  const isAuthenticated = await ensureAuthenticated();
-  if (!isAuthenticated) {
-    console.warn("⚠️ Could not establish authentication for RLS policies");
-    return false;
-  }
-
-  return true;
-}
 
 export class SupabaseDataService {
   // ==================== USER PROFILES ====================
@@ -39,17 +13,7 @@ export class SupabaseDataService {
     profile: Omit<UserProfile, "budgets" | "categories" | "activeBudgetId">,
   ): Promise<boolean> {
     try {
-      const canUseSupabase = await shouldUseSupabase();
-      if (!canUseSupabase) {
-        console.log("Supabase not available, skipping user profile creation");
-        return false;
-      }
-
       console.log("Creating user profile:", profile);
-      console.log(
-        "Current user session:",
-        (await supabase.auth.getSession()).data.session?.user?.id,
-      );
 
       // Check if profile already exists
       const { data: existing } = await supabase
@@ -70,12 +34,7 @@ export class SupabaseDataService {
       });
 
       if (error) {
-        console.error("Error creating user profile:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
+        console.error("Error creating user profile:", error);
         return false;
       }
 
@@ -91,12 +50,6 @@ export class SupabaseDataService {
     try {
       console.log("Getting user profile for:", userId);
 
-      const canUseSupabase = await shouldUseSupabase();
-      if (!canUseSupabase) {
-        console.log("Supabase not available, returning null");
-        return null;
-      }
-
       // Get user profile
       const { data: profile, error: profileError } = await supabase
         .from("user_profiles")
@@ -106,8 +59,6 @@ export class SupabaseDataService {
 
       if (profileError) {
         console.error("Error getting user profile:", profileError);
-        console.error("Error code:", profileError.code);
-        console.error("Error message:", profileError.message);
         return null;
       }
 
@@ -263,99 +214,6 @@ export class SupabaseDataService {
     }
   }
 
-  static async updateBudget(
-    budgetId: string,
-    updates: Partial<Budget>,
-  ): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from("budgets")
-        .update({
-          name: updates.name,
-          collaborators: updates.collaborators,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", budgetId);
-
-      if (error) {
-        console.error("Error updating budget:", error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error in updateBudget:", error);
-      return false;
-    }
-  }
-
-  static async deleteBudget(budgetId: string): Promise<boolean> {
-    try {
-      // First delete all entries in this budget
-      await supabase.from("budget_entries").delete().eq("budget_id", budgetId);
-
-      // Then delete the budget
-      const { error } = await supabase
-        .from("budgets")
-        .delete()
-        .eq("id", budgetId);
-
-      if (error) {
-        console.error("Error deleting budget:", error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error in deleteBudget:", error);
-      return false;
-    }
-  }
-
-  static async findBudgetByCode(code: string): Promise<Budget | null> {
-    try {
-      const { data: budget, error } = await supabase
-        .from("budgets")
-        .select("*")
-        .eq("code", code)
-        .single();
-
-      if (error || !budget) {
-        return null;
-      }
-
-      // Get entries for this budget
-      const { data: entries } = await supabase
-        .from("budget_entries")
-        .select("*")
-        .eq("budget_id", budget.id);
-
-      return {
-        id: budget.id,
-        name: budget.name,
-        code: budget.code,
-        ownerId: budget.owner_id,
-        collaborators: budget.collaborators || [],
-        entries:
-          entries?.map((entry) => ({
-            id: entry.id,
-            date: entry.date,
-            description: entry.description,
-            category: entry.category,
-            amount: entry.amount,
-            type: entry.type as "income" | "expense",
-            userId: entry.user_id,
-            budgetId: entry.budget_id,
-          })) || [],
-        createdAt: budget.created_at,
-        updatedAt: budget.updated_at,
-      };
-    } catch (error) {
-      console.error("Error in findBudgetByCode:", error);
-      return null;
-    }
-  }
-
   // ==================== BUDGET ENTRIES ====================
 
   static async createBudgetEntry(
@@ -363,13 +221,6 @@ export class SupabaseDataService {
   ): Promise<string | null> {
     try {
       console.log("Creating budget entry:", entry);
-
-      // Check if Supabase is available
-      const canUseSupabase = await shouldUseSupabase();
-      if (!canUseSupabase) {
-        console.log("Supabase not available, skipping entry creation");
-        return null;
-      }
 
       const entryId = this.generateId();
       const entryData = {
@@ -383,12 +234,6 @@ export class SupabaseDataService {
         budget_id: entry.budgetId,
       };
 
-      console.log("Entry data to insert:", entryData);
-      console.log(
-        "Current user session:",
-        (await supabase.auth.getSession()).data.session?.user?.id,
-      );
-
       const { data, error } = await supabase
         .from("budget_entries")
         .insert(entryData)
@@ -396,13 +241,7 @@ export class SupabaseDataService {
         .single();
 
       if (error) {
-        console.error("Error creating budget entry:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-        });
-
+        console.error("Error creating budget entry:", error);
         return null;
       }
 
@@ -416,133 +255,6 @@ export class SupabaseDataService {
     } catch (error) {
       console.error("Error in createBudgetEntry:", error);
       return null;
-    }
-  }
-
-  static async updateBudgetEntry(
-    entryId: string,
-    updates: Partial<BudgetEntry>,
-  ): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from("budget_entries")
-        .update({
-          date: updates.date,
-          description: updates.description,
-          category: updates.category,
-          amount: updates.amount,
-          type: updates.type,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", entryId);
-
-      if (error) {
-        console.error("Error updating budget entry:", error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error in updateBudgetEntry:", error);
-      return false;
-    }
-  }
-
-  static async deleteBudgetEntry(entryId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from("budget_entries")
-        .delete()
-        .eq("id", entryId);
-
-      if (error) {
-        console.error("Error deleting budget entry:", error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error in deleteBudgetEntry:", error);
-      return false;
-    }
-  }
-
-  // ==================== CATEGORIES ====================
-
-  static async createCategory(
-    category: Omit<Category, "id">,
-  ): Promise<string | null> {
-    try {
-      const { data, error } = await supabase
-        .from("categories")
-        .insert({
-          name: category.name,
-          type: category.type,
-          color: category.color,
-          icon: category.icon,
-          description: category.description,
-          user_id: category.userId,
-        })
-        .select("id")
-        .single();
-
-      if (error || !data) {
-        console.error("Error creating category:", error);
-        return null;
-      }
-
-      return data.id;
-    } catch (error) {
-      console.error("Error in createCategory:", error);
-      return null;
-    }
-  }
-
-  static async updateCategory(
-    categoryId: string,
-    updates: Partial<Category>,
-  ): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from("categories")
-        .update({
-          name: updates.name,
-          type: updates.type,
-          color: updates.color,
-          icon: updates.icon,
-          description: updates.description,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", categoryId);
-
-      if (error) {
-        console.error("Error updating category:", error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error in updateCategory:", error);
-      return false;
-    }
-  }
-
-  static async deleteCategory(categoryId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from("categories")
-        .delete()
-        .eq("id", categoryId);
-
-      if (error) {
-        console.error("Error deleting category:", error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Error in deleteCategory:", error);
-      return false;
     }
   }
 
@@ -602,6 +314,37 @@ export class SupabaseDataService {
     } catch (error) {
       console.error("Error in migrateFromLocalStorage:", error);
       return false;
+    }
+  }
+
+  // ==================== CATEGORIES ====================
+
+  static async createCategory(
+    category: Omit<Category, "id">,
+  ): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({
+          name: category.name,
+          type: category.type,
+          color: category.color,
+          icon: category.icon,
+          description: category.description,
+          user_id: category.userId,
+        })
+        .select("id")
+        .single();
+
+      if (error || !data) {
+        console.error("Error creating category:", error);
+        return null;
+      }
+
+      return data.id;
+    } catch (error) {
+      console.error("Error in createCategory:", error);
+      return null;
     }
   }
 
