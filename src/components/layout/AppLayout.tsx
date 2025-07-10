@@ -253,6 +253,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-2">
+              <RLSStatus />
               <SupabaseStatus />
               <BackupStatusIndicator />
             </div>
