@@ -520,7 +520,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     ); // 10 minutes
 
     return () => clearInterval(interval);
-  }, [currentUser, mounted]);
+  }, [currentUser]);
 
   const loadUserProfile = async (authUser: any) => {
     // Get current Supabase session to ensure we have the correct user ID
@@ -1117,7 +1117,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       {
         id: generateId(),
         date: "2024-12-15",
-        description: "Escritório Coworking",
+        description: "Escrit��rio Coworking",
         category: "Moradia",
         amount: -800,
         type: "expense" as const,
