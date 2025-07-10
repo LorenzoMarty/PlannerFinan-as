@@ -129,23 +129,4 @@ export class SupabaseDebug {
       console.error("❌ Unexpected error:", error);
     }
   }
-
-  static async checkRLSPolicies(): Promise<void> {
-    console.log("=== CHECKING RLS POLICIES ===");
-
-    try {
-      const { data, error } = await supabase.rpc("pg_policies");
-
-      if (error) {
-        console.error("❌ Could not fetch policies:", error);
-        return;
-      }
-
-      console.log("📋 RLS Policies:", data);
-    } catch (error) {
-      console.log(
-        "⚠️ Could not check RLS policies (this is normal if you don't have admin access)",
-      );
-    }
-  }
 }
