@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +24,11 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/lib/supabase";
+import { signIn, signUp } from "@/lib/supabase"; // ✅ importar helpers
 import { useToast } from "@/hooks/use-toast";
 
 interface LoginFormProps {
-  onLogin: (email: string, password: string) => void;
+  onLogin: () => void; // ✅ não precisa passar email/senha pois sessão já está salva
 }
 
 export default function LoginForm({ onLogin }: LoginFormProps) {
@@ -40,47 +40,43 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
+
+  // ✅ separar erros para cada aba
+  const [loginError, setLoginError] = useState("");
+  const [signupError, setSignupError] = useState("");
+
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError("");
+
     if (!email || !password) {
-      setError("Por favor, preencha todos os campos");
+      setLoginError("Por favor, preencha todos os campos");
       return;
     }
 
     setIsLoading(true);
-    setError("");
-
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword(
-        {
-          email,
-          password,
-        },
-      );
-
-      if (authError) {
-        if (authError.message.includes("Invalid login credentials")) {
-          setError("Email ou senha incorretos");
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          setLoginError("Email ou senha incorretos");
         } else {
-          setError("Erro ao fazer login. Tente novamente.");
+          setLoginError("Erro ao fazer login. Tente novamente.");
         }
         return;
       }
 
-      if (data.user) {
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo de volta ao PlannerFin",
-        });
-        onLogin(email, password);
-      }
-    } catch (error) {
-      setError("Erro inesperado. Tente novamente.");
-      console.error("Login error:", error);
+      toast({
+        title: "Login realizado com sucesso!",
+        description: "Bem-vindo de volta ao PlannerFin",
+      });
+      onLogin(); // ✅ login concluído
+    } catch (err) {
+      console.error("Login error:", err);
+      setLoginError("Erro inesperado. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -88,54 +84,41 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSignupError("");
+
     if (!email || !password || !confirmPassword || !name) {
-      setError("Por favor, preencha todos os campos");
+      setSignupError("Por favor, preencha todos os campos");
       return;
     }
-
     if (password !== confirmPassword) {
-      setError("As senhas não coincidem");
+      setSignupError("As senhas não coincidem");
       return;
     }
-
     if (password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres");
+      setSignupError("A senha deve ter pelo menos 6 caracteres");
       return;
     }
 
     setIsLoading(true);
-    setError("");
-
     try {
-      const { data, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name,
-          },
-        },
-      });
-
-      if (authError) {
-        if (authError.message.includes("User already registered")) {
-          setError("Este email já está cadastrado. Tente fazer login.");
+      const { error, data } = await signUp(email, password);
+      if (error) {
+        if (error.message.includes("User already registered")) {
+          setSignupError("Este email já está cadastrado. Tente fazer login.");
         } else {
-          setError("Erro ao criar conta. Tente novamente.");
+          setSignupError("Erro ao criar conta. Tente novamente.");
         }
         return;
       }
 
-      if (data.user) {
+      if (data?.user) {
         if (data.user.email_confirmed_at) {
-          // User is immediately confirmed
           toast({
             title: "Conta criada com sucesso!",
             description: "Bem-vindo ao PlannerFin",
           });
-          onLogin(email, password);
+          onLogin();
         } else {
-          // User needs to confirm email
           toast({
             title: "Conta criada!",
             description: "Verifique seu email para confirmar a conta",
@@ -143,9 +126,9 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           setActiveTab("login");
         }
       }
-    } catch (error) {
-      setError("Erro inesperado. Tente novamente.");
-      console.error("Signup error:", error);
+    } catch (err) {
+      console.error("Signup error:", err);
+      setSignupError("Erro inesperado. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
