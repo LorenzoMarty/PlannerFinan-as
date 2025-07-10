@@ -496,7 +496,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   // Save user data whenever it changes with enhanced persistence
   useEffect(() => {
-    if (currentUser && mounted && typeof window !== "undefined") {
+    if (currentUser && typeof window !== "undefined") {
       const success = DataStorage.saveUserData(currentUser.id, currentUser);
       if (!success) {
         console.warn("Failed to save user data to localStorage");
