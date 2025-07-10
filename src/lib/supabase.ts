@@ -1,60 +1,52 @@
 import { createClient } from "@supabase/supabase-js";
 
-// ⚙️ Configurações vindas do .env
+// 🚀 Pegando as variáveis do .env
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// 🔍 Verifica se está usando credenciais de demonstração
-export const isUsingDemoCredentials =
-  supabaseUrl === "https://demo.supabase.co" ||
-  supabaseKey === "demo-key";
+// 🛡️ Validação simples para evitar erros se esquecer de setar no .env
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("❌ SUPABASE_URL ou SUPABASE_ANON_KEY não estão definidos no .env");
+}
 
-// 📦 Cria cliente Supabase real (agora com persistSession: true)
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: true },
+// 🔑 Cria o cliente Supabase
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,       // ✅ mantém o usuário logado (localStorage)
+    autoRefreshToken: true,     // 🔄 renova token automaticamente
+  },
 });
 
-// 🧪 Helper para verificar se Supabase está disponível
-export const isSupabaseAvailable = async (): Promise<boolean> => {
-  if (isUsingDemoCredentials) return false;
-
-  try {
-    const { error } = await supabase
-      .from("user_profiles")
-      .select("id")
-      .range(0, 0);
-
-    return !error || error.code !== "PGRST003";
-  } catch (error) {
-    console.warn("Supabase connectivity test failed:", error);
-    return false;
-  }
-};
-
-// ✅ Funções para autenticação
-export const signUp = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) console.error("Sign up error:", error);
-  return { data, error };
-};
-
+// 📦 Função para login usando email + senha
 export const signIn = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) console.error("Sign in error:", error);
-  return { data, error };
+  return supabase.auth.signInWithPassword({ email, password });
 };
 
-export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) console.error("Sign out error:", error);
+// ✏️ Função para criar conta (signup)
+export const signUp = async (email: string, password: string, name?: string) => {
+  return supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name: name || "",
+      },
+    },
+  });
 };
 
-// 🐞 Log em desenvolvimento
+// 🧪 Recuperar sessão atual (opcional, caso queira checar se o usuário já está logado)
+export const getSession = async () => {
+  return supabase.auth.getSession();
+};
+
+// 🐞 Log de debug no desenvolvimento
 if (import.meta.env.DEV) {
-  console.log("🔧 Supabase Configuration:");
-  console.log("- URL:", supabaseUrl);
-  console.log("- Using demo credentials:", isUsingDemoCredentials);
+  console.log("✅ Supabase configurado:");
+  console.log("URL:", supabaseUrl);
+  console.log("Chave (primeiros dígitos):", supabaseAnonKey?.slice(0, 8) + "...");
 }
+
 
 // 📦 Database schema types (mantenho o resto do seu schema)
 export interface Database {
