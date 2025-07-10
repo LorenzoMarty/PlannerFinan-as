@@ -75,5 +75,5 @@ export default function Login() {
     }
   };
 
-  return <LoginForm onLogin={handleLogin} />;
+  return <SimpleLoginForm onLogin={handleLogin} />;
 }
