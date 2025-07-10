@@ -153,7 +153,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     {
       icon: Shield,
       title: "Seguro & Acessível",
-      description: "Proteção de dados e interface totalmente acessível",
+      description: "Proteção de dados e interface totalmente acess��vel",
     },
   ];
 
@@ -273,10 +273,10 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
 
                 <TabsContent value="login">
                   <form onSubmit={handleLogin} className="space-y-4">
-                    {error && (
+                    {loginError && (
                       <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
+                        <AlertDescription>{loginError}</AlertDescription>
                       </Alert>
                     )}
 
