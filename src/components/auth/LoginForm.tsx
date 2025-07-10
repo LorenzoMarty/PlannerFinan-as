@@ -22,7 +22,6 @@ import {
   EyeOff,
   ArrowRight,
   CheckCircle,
-  Sparkles,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
