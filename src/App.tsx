@@ -24,7 +24,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     setMounted(true);
 
     const checkAuth = async () => {
-      // Aguardar montagem do componente para evitar RSL
       if (typeof window === "undefined") return;
 
       // Check both localStorage and Supabase session
