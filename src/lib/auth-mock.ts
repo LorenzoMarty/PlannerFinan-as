@@ -53,6 +53,9 @@ export async function setupMockAuthentication(
     if (session?.user?.email === targetUser.email) {
       currentMockUser = targetUser;
       console.log("✅ Already authenticated as:", targetUser.email);
+
+      // Ensure user profile exists for RLS
+      await ensureUserProfileExists(session.user.id, targetUser);
       return true;
     }
 
@@ -74,6 +77,7 @@ export async function setupMockAuthentication(
             data: {
               name: targetUser.name,
             },
+            emailRedirectTo: undefined, // Disable email confirmation for demo
           },
         });
 
@@ -85,7 +89,29 @@ export async function setupMockAuthentication(
       if (signUpData.user) {
         console.log("✅ Mock user created:", targetUser.email);
 
-        // Try to sign in again
+        // If email confirmation is disabled, the user should be immediately available
+        if (signUpData.session) {
+          currentMockUser = targetUser;
+          console.log("✅ Mock authentication successful:", targetUser.email);
+
+          // Ensure user profile exists for RLS
+          await ensureUserProfileExists(signUpData.session.user.id, targetUser);
+
+          // Store in localStorage for ProtectedRoute compatibility
+          localStorage.setItem(
+            "plannerfinUser",
+            JSON.stringify({
+              id: signUpData.session.user.id,
+              email: targetUser.email,
+              name: targetUser.name,
+              authenticated: true,
+            }),
+          );
+
+          return true;
+        }
+
+        // If no session but user created, try to sign in
         const { data: retryData, error: retryError } =
           await supabase.auth.signInWithPassword({
             email: targetUser.email,
@@ -104,6 +130,9 @@ export async function setupMockAuthentication(
           currentMockUser = targetUser;
           console.log("✅ Mock authentication successful:", targetUser.email);
 
+          // Ensure user profile exists for RLS
+          await ensureUserProfileExists(retryData.session.user.id, targetUser);
+
           // Store in localStorage for ProtectedRoute compatibility
           localStorage.setItem(
             "plannerfinUser",
@@ -111,6 +140,7 @@ export async function setupMockAuthentication(
               id: retryData.session.user.id,
               email: targetUser.email,
               name: targetUser.name,
+              authenticated: true,
             }),
           );
 
@@ -121,6 +151,9 @@ export async function setupMockAuthentication(
       currentMockUser = targetUser;
       console.log("✅ Mock authentication successful:", targetUser.email);
 
+      // Ensure user profile exists for RLS
+      await ensureUserProfileExists(data.session.user.id, targetUser);
+
       // Store in localStorage for ProtectedRoute compatibility
       localStorage.setItem(
         "plannerfinUser",
@@ -128,6 +161,7 @@ export async function setupMockAuthentication(
           id: data.session.user.id,
           email: targetUser.email,
           name: targetUser.name,
+          authenticated: true,
         }),
       );
 
@@ -138,6 +172,47 @@ export async function setupMockAuthentication(
   } catch (error) {
     console.error("❌ Mock authentication failed:", error);
     return false;
+  }
+}
+
+/**
+ * Ensure user profile exists in database for RLS policies
+ */
+async function ensureUserProfileExists(
+  userId: string,
+  user: MockUser,
+): Promise<void> {
+  try {
+    // Check if profile exists
+    const { data: existing, error: selectError } = await supabase
+      .from("user_profiles")
+      .select("id")
+      .eq("id", userId)
+      .single();
+
+    if (selectError && selectError.code !== "PGRST116") {
+      console.error("Error checking user profile:", selectError);
+      return;
+    }
+
+    if (!existing) {
+      // Create user profile
+      const { error: insertError } = await supabase
+        .from("user_profiles")
+        .insert({
+          id: userId,
+          email: user.email,
+          name: user.name,
+        });
+
+      if (insertError) {
+        console.error("❌ Failed to create user profile:", insertError);
+      } else {
+        console.log("✅ User profile created for RLS");
+      }
+    }
+  } catch (error) {
+    console.error("Error ensuring user profile:", error);
   }
 }
 
