@@ -399,10 +399,16 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [useSupabase, setUseSupabase] = useState(true); // Default to Supabase
+  const [mounted, setMounted] = useState(false);
 
   // Load user data on mount
   useEffect(() => {
+    setMounted(true);
+
     const initializeApp = async () => {
+      // Aguardar montagem do componente para evitar RSL
+      if (typeof window === "undefined") return;
+
       // Initialize Supabase if needed
       if (useSupabase) {
         console.log("Initializing Supabase...");
@@ -441,6 +447,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
     // Listen for storage changes (when user logs in from another tab)
     const handleStorageChange = (e: StorageEvent) => {
+      if (typeof window === "undefined") return;
+
       if (e.key === "plannerfinUser") {
         const authUser = localStorage.getItem("plannerfinUser");
         if (authUser) {
@@ -456,24 +464,26 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       }
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", handleStorageChange);
+      return () => window.removeEventListener("storage", handleStorageChange);
+    }
   }, [useSupabase]);
 
   // Save user data whenever it changes with enhanced persistence
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && mounted && typeof window !== "undefined") {
       const success = DataStorage.saveUserData(currentUser.id, currentUser);
       if (!success) {
         console.warn("Failed to save user data to localStorage");
         // Could show a toast notification here
       }
     }
-  }, [currentUser]);
+  }, [currentUser, mounted]);
 
   // Auto-backup every 10 minutes
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !mounted || typeof window === "undefined") return;
 
     const interval = setInterval(
       () => {
@@ -486,7 +496,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     ); // 10 minutes
 
     return () => clearInterval(interval);
-  }, [currentUser]);
+  }, [currentUser, mounted]);
 
   const loadUserProfile = async (authUser: any) => {
     // Get current Supabase session to ensure we have the correct user ID
