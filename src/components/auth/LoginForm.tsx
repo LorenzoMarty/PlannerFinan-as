@@ -42,13 +42,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("login");
-  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
-
-  // Evitar problemas de RSL
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,15 +173,6 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
       description: "Proteção de dados e interface totalmente acessível",
     },
   ];
-
-  // Não renderizar até estar montado para evitar problemas de RSL
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-primary/10 via-background to-accent/10">

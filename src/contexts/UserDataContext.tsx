@@ -407,14 +407,10 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [useSupabase, setUseSupabase] = useState(true); // Default to Supabase
-  const [mounted, setMounted] = useState(false);
 
   // Load user data on mount
   useEffect(() => {
-    setMounted(true);
-
     const initializeApp = async () => {
-      // Aguardar montagem do componente para evitar RSL
       if (typeof window === "undefined") return;
 
       // Initialize Supabase if needed
@@ -431,8 +427,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
             } = await supabase.auth.getSession();
             if (session?.user) {
               console.log("✅ Supabase ready for operations");
-            } else {
-              console.log("⚠️ No active session, will test on login");
             }
           } catch (testError) {
             console.warn(
@@ -500,18 +494,18 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   // Save user data whenever it changes with enhanced persistence
   useEffect(() => {
-    if (currentUser && mounted && typeof window !== "undefined") {
+    if (currentUser && typeof window !== "undefined") {
       const success = DataStorage.saveUserData(currentUser.id, currentUser);
       if (!success) {
         console.warn("Failed to save user data to localStorage");
         // Could show a toast notification here
       }
     }
-  }, [currentUser, mounted]);
+  }, [currentUser]);
 
   // Auto-backup every 10 minutes
   useEffect(() => {
-    if (!currentUser || !mounted || typeof window === "undefined") return;
+    if (!currentUser || typeof window === "undefined") return;
 
     const interval = setInterval(
       () => {
@@ -524,7 +518,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     ); // 10 minutes
 
     return () => clearInterval(interval);
-  }, [currentUser, mounted]);
+  }, [currentUser]);
 
   const loadUserProfile = async (authUser: any) => {
     // Get current Supabase session to ensure we have the correct user ID
@@ -1121,7 +1115,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       {
         id: generateId(),
         date: "2024-12-15",
-        description: "Escritório Coworking",
+        description: "Escrit��rio Coworking",
         category: "Moradia",
         amount: -800,
         type: "expense" as const,
