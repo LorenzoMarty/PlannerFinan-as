@@ -16,7 +16,7 @@ async function testSupabase() {
     const { data, error: dbError } = await supabase
       .from("user_profiles")
       .select("*")
-      .limit(1);
+      .range(0, 0);
 
     if (dbError) {
       console.error("Database error:", dbError);
