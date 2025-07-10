@@ -50,6 +50,37 @@ export function RLSStatus({ showDetails = false }: RLSStatusProps) {
     }
   };
 
+  const runDiagnostics = async () => {
+    setIsLoading(true);
+    try {
+      const results = await diagnoseRLSIssues();
+      displayDiagnostics(results);
+      await checkStatus();
+    } catch (error) {
+      console.error("Error running diagnostics:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const repairIssues = async () => {
+    setIsLoading(true);
+    try {
+      const success = await repairRLSIssues();
+      if (success) {
+        setTestResult(true);
+        await checkStatus();
+      } else {
+        setTestResult(false);
+      }
+    } catch (error) {
+      console.error("Error repairing RLS issues:", error);
+      setTestResult(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const setupAuth = async () => {
     setIsLoading(true);
     try {
