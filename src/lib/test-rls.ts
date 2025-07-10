@@ -26,9 +26,31 @@ export async function testRLSPolicies(): Promise<boolean> {
     }
 
     console.log("✅ Authenticated as:", session.user.email);
+    console.log("User ID:", session.user.id);
+    console.log("User role:", session.user.role);
 
-    // Test 1: Create user profile (should work with RLS)
-    console.log("🧪 Test 1: Creating user profile...");
+    // Test 1: Check table permissions first
+    console.log("🧪 Test 1: Checking table permissions...");
+
+    // Test basic SELECT permission
+    const { data: selectTest, error: selectError } = await supabase
+      .from("user_profiles")
+      .select("count");
+
+    if (selectError) {
+      console.error("❌ Basic SELECT failed:", selectError);
+      console.error("Error details:", {
+        code: selectError.code,
+        message: selectError.message,
+        details: selectError.details,
+        hint: selectError.hint,
+      });
+      return false;
+    }
+    console.log("✅ Basic SELECT works");
+
+    // Test 2: Create user profile (should work with RLS)
+    console.log("🧪 Test 2: Creating/updating user profile...");
     const profileData = {
       id: session.user.id,
       email: session.user.email || "test@test.com",
@@ -41,13 +63,33 @@ export async function testRLSPolicies(): Promise<boolean> {
       .select();
 
     if (profileError) {
-      console.error("❌ Profile creation failed:", profileError.message);
-      return false;
-    }
-    console.log("✅ Profile creation successful");
+      console.error("❌ Profile creation failed:", profileError);
+      console.error("Error details:", {
+        code: profileError.code,
+        message: profileError.message,
+        details: profileError.details,
+        hint: profileError.hint,
+      });
 
-    // Test 2: Create a budget (should work with RLS)
-    console.log("🧪 Test 2: Creating budget...");
+      // Try INSERT instead of UPSERT
+      console.log("🔄 Trying INSERT instead...");
+      const { data: insertProfile, error: insertError } = await supabase
+        .from("user_profiles")
+        .insert(profileData)
+        .select();
+
+      if (insertError) {
+        console.error("❌ Profile INSERT also failed:", insertError);
+        return false;
+      } else {
+        console.log("✅ Profile creation via INSERT successful");
+      }
+    } else {
+      console.log("✅ Profile creation via UPSERT successful");
+    }
+
+    // Test 3: Create a budget (should work with RLS)
+    console.log("🧪 Test 3: Creating budget...");
     const budgetData = {
       id: `test-budget-${Date.now()}`,
       name: "Test RLS Budget",
@@ -62,13 +104,19 @@ export async function testRLSPolicies(): Promise<boolean> {
       .select();
 
     if (budgetError) {
-      console.error("❌ Budget creation failed:", budgetError.message);
+      console.error("❌ Budget creation failed:", budgetError);
+      console.error("Error details:", {
+        code: budgetError.code,
+        message: budgetError.message,
+        details: budgetError.details,
+        hint: budgetError.hint,
+      });
       return false;
     }
     console.log("✅ Budget creation successful");
 
-    // Test 3: Create a category (should work with RLS)
-    console.log("🧪 Test 3: Creating category...");
+    // Test 4: Create a category (should work with RLS)
+    console.log("🧪 Test 4: Creating category...");
     const categoryData = {
       id: `test-category-${Date.now()}`,
       name: "Test RLS Category",
@@ -84,13 +132,19 @@ export async function testRLSPolicies(): Promise<boolean> {
       .select();
 
     if (categoryError) {
-      console.error("❌ Category creation failed:", categoryError.message);
+      console.error("❌ Category creation failed:", categoryError);
+      console.error("Error details:", {
+        code: categoryError.code,
+        message: categoryError.message,
+        details: categoryError.details,
+        hint: categoryError.hint,
+      });
       return false;
     }
     console.log("✅ Category creation successful");
 
-    // Test 4: Create a budget entry (should work with RLS)
-    console.log("🧪 Test 4: Creating budget entry...");
+    // Test 5: Create a budget entry (should work with RLS)
+    console.log("🧪 Test 5: Creating budget entry...");
     const entryData = {
       id: `test-entry-${Date.now()}`,
       date: new Date().toISOString().split("T")[0],
@@ -108,13 +162,19 @@ export async function testRLSPolicies(): Promise<boolean> {
       .select();
 
     if (entryError) {
-      console.error("❌ Entry creation failed:", entryError.message);
+      console.error("❌ Entry creation failed:", entryError);
+      console.error("Error details:", {
+        code: entryError.code,
+        message: entryError.message,
+        details: entryError.details,
+        hint: entryError.hint,
+      });
       return false;
     }
     console.log("✅ Entry creation successful");
 
-    // Test 5: Query user data (should only return user's own data)
-    console.log("🧪 Test 5: Querying user data...");
+    // Test 6: Query user data (should only return user's own data)
+    console.log("🧪 Test 6: Querying user data...");
 
     const { data: userBudgets, error: queryError } = await supabase
       .from("budgets")
