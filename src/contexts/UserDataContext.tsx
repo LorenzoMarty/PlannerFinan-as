@@ -417,6 +417,13 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       // Initialize Supabase if needed
       if (useSupabase) {
         console.log("Initializing Supabase...");
+
+        // Set up mock authentication for RLS policies
+        const authSetup = await setupMockAuthentication();
+        if (authSetup) {
+          console.log("🔧 Mock authentication established for RLS");
+        }
+
         const connected = await SupabaseSetup.testConnection();
         if (connected) {
           await SupabaseSetup.ensureTablesExist();
