@@ -11,12 +11,25 @@ import type {
   UserProfile,
 } from "@/contexts/UserDataContext";
 
-// Helper to check if we should use Supabase
+// Helper to check if we should use Supabase with authentication ensured
 async function shouldUseSupabase(): Promise<boolean> {
   if (isUsingDemoCredentials) {
     return false;
   }
-  return await isSupabaseAvailable();
+
+  const isAvailable = await isSupabaseAvailable();
+  if (!isAvailable) {
+    return false;
+  }
+
+  // Ensure authentication for RLS policies to work
+  const isAuthenticated = await ensureAuthenticated();
+  if (!isAuthenticated) {
+    console.warn("⚠️ Could not establish authentication for RLS policies");
+    return false;
+  }
+
+  return true;
 }
 
 export class SupabaseDataService {
