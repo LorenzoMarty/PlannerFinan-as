@@ -3,6 +3,7 @@ import {
   isUsingDemoCredentials,
   isSupabaseAvailable,
 } from "@/lib/supabase";
+import { ensureAuthenticated } from "@/lib/auth-mock";
 import type {
   BudgetEntry,
   Category,
