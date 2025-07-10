@@ -427,8 +427,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
             } = await supabase.auth.getSession();
             if (session?.user) {
               console.log("✅ Supabase ready for operations");
-            } else {
-              console.log("⚠️ No active session, will test on login");
             }
           } catch (testError) {
             console.warn(
