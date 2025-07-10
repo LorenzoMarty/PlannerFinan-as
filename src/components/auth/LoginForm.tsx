@@ -125,6 +125,8 @@ export default function LoginForm() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
     if (!email || !password || !confirmPassword || !name) {
       setError("Preencha todos os campos");
       return;
@@ -137,21 +139,66 @@ export default function LoginForm() {
       setError("Senha deve ter no mínimo 6 caracteres");
       return;
     }
+
     setError("");
     setIsLoading(true);
+
     try {
       const { data, error } = await signUp(email, password, name);
+
       if (error) {
-        setError(error.message);
+        console.error("Signup error:", error);
+        if (error.message.includes("User already registered")) {
+          setError("Este email já está cadastrado. Tente fazer login.");
+        } else if (error.message.includes("Password should be at least")) {
+          setError("Senha deve ter pelo menos 6 caracteres");
+        } else {
+          setError(error.message);
+        }
         return;
       }
-      toast({
-        title: "Conta criada!",
-        description: "Verifique seu email para confirmar",
-      });
-      setActiveTab("login");
+
+      if (data.user) {
+        // Check if email confirmation is required
+        if (!data.session) {
+          toast({
+            title: "Conta criada!",
+            description: "Verifique seu email para confirmar a conta",
+          });
+          setActiveTab("login");
+        } else {
+          // If no email confirmation required (like with demo users)
+          const userData = {
+            id: data.user.id,
+            email: data.user.email || email,
+            name: name,
+            authenticated: true,
+          };
+
+          localStorage.setItem("plannerfinUser", JSON.stringify(userData));
+
+          // Create user profile in Supabase
+          try {
+            await SupabaseDataService.createUserProfile({
+              id: data.user.id,
+              email: userData.email,
+              name: userData.name,
+            });
+          } catch (profileError) {
+            console.warn("Profile creation warning:", profileError);
+          }
+
+          toast({
+            title: "Conta criada!",
+            description: "Bem-vindo ao PlannerFin!",
+          });
+
+          // Navigate to dashboard
+          navigate("/dashboard", { replace: true });
+        }
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Signup error:", err);
       setError("Erro inesperado ao criar conta");
     } finally {
       setIsLoading(false);
