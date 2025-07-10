@@ -34,7 +34,7 @@ export async function testSupabaseConnection() {
     const { data, error } = await supabase
       .from("user_profiles")
       .select("*")
-      .limit(1);
+      .range(0, 0);
 
     if (error) {
       if (error.code === "42P01") {
