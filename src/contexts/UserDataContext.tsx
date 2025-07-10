@@ -423,11 +423,31 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         const connected = await SupabaseSetup.testConnection();
         if (connected) {
           await SupabaseSetup.ensureTablesExist();
+
+          // Test if we can actually perform operations
+          try {
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
+            if (session?.user) {
+              console.log("✅ Supabase ready for operations");
+            } else {
+              console.log("⚠️ No active session, will test on login");
+            }
+          } catch (testError) {
+            console.warn(
+              "Supabase test failed, falling back to localStorage:",
+              testError,
+            );
+            setUseSupabase(false);
+            localStorage.setItem("plannerfinUseSupabase", "false");
+          }
         } else {
           console.warn(
             "Supabase connection failed, falling back to localStorage",
           );
           setUseSupabase(false);
+          localStorage.setItem("plannerfinUseSupabase", "false");
         }
       }
 
