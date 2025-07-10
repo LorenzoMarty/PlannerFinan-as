@@ -6,7 +6,13 @@ import ChangePasswordDialog from "@/components/security/ChangePasswordDialog";
 import ProfileManagementDialog from "@/components/security/ProfileManagementDialog";
 import { DataBackupDialog } from "@/components/security/DataBackupDialog";
 import { SupabaseConfig } from "@/components/layout/SupabaseConfig";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
