@@ -136,7 +136,7 @@ export interface Database {
           id: string;
           name: string;
           code: string;
-          owner_id: string;
+          user_id: string;
           collaborators: string[];
           created_at: string;
           updated_at: string;
