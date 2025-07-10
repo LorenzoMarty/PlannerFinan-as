@@ -1,97 +1,81 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// ⚙️ Configurações vindas do .env
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://demo.supabase.co";
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "demo-key";
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Track if we're using demo credentials
+// 🔍 Verifica se está usando credenciais de demonstração
 export const isUsingDemoCredentials =
   supabaseUrl === "https://demo.supabase.co" ||
-  supabaseKey === "demo-key" ||
-  !import.meta.env.VITE_SUPABASE_URL ||
-  !import.meta.env.VITE_SUPABASE_ANON_KEY;
+  supabaseKey === "demo-key";
 
-// Log current configuration for debugging
-if (import.meta.env.DEV) {
-  console.log("🔧 Supabase Configuration:");
-  console.log("- URL:", supabaseUrl);
-  console.log("- Using demo credentials:", isUsingDemoCredentials);
-  console.log("- Environment URL set:", !!import.meta.env.VITE_SUPABASE_URL);
-  console.log(
-    "- Environment Key set:",
-    !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-  );
-}
-
-// Create Supabase client with error handling
+// 📦 Cria cliente Supabase real
 let supabaseClient: ReturnType<typeof createClient> | null = null;
 
 try {
-  if (!isUsingDemoCredentials) {
-    supabaseClient = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: false, // We don't use Supabase auth, just storage
-      },
-    });
-  }
+  supabaseClient = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false },
+  });
 } catch (error) {
   console.warn("Failed to initialize Supabase client:", error);
-  supabaseClient = null;
 }
 
-// Export a safe client that handles demo mode
-export const supabase =
-  supabaseClient ||
-  ({
-    from: () => ({
-      select: () =>
-        Promise.resolve({
-          data: null,
-          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
-        }),
-      insert: () =>
-        Promise.resolve({
-          data: null,
-          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
-        }),
-      update: () =>
-        Promise.resolve({
-          data: null,
-          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
-        }),
-      delete: () =>
-        Promise.resolve({
-          data: null,
-          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
-        }),
-      upsert: () =>
-        Promise.resolve({
-          data: null,
-          error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
-        }),
-    }),
-    rpc: () =>
+// ✅ Exporta cliente real ou mock (modo demo)
+export const supabase = supabaseClient ?? ({
+  from: () => ({
+    select: () =>
       Promise.resolve({
         data: null,
         error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
       }),
-  } as any);
+    insert: () =>
+      Promise.resolve({
+        data: null,
+        error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+      }),
+    update: () =>
+      Promise.resolve({
+        data: null,
+        error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+      }),
+    delete: () =>
+      Promise.resolve({
+        data: null,
+        error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+      }),
+    upsert: () =>
+      Promise.resolve({
+        data: null,
+        error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+      }),
+  }),
+  auth: {
+    getSession: () =>
+      Promise.resolve({
+        data: { session: null },
+        error: { code: "DEMO_MODE", message: "Demo mode - no auth" },
+      }),
+  },
+  rpc: () =>
+    Promise.resolve({
+      data: null,
+      error: { code: "DEMO_MODE", message: "Demo mode - no real database" },
+    }),
+} as any);
 
-// Helper function to check if Supabase is available
+// 🧪 Helper para verificar se Supabase está disponível
 export const isSupabaseAvailable = async (): Promise<boolean> => {
   if (isUsingDemoCredentials || !supabaseClient) {
     return false;
   }
 
   try {
-    // Simple connectivity test
     const { error } = await supabaseClient
       .from("user_profiles")
       .select("id")
-      .limit(1);
+      .range(0, 0); // ⚠️ use range(0, 0) para buscar 1 registro
 
-    return !error || error.code !== "PGRST003"; // Table doesn't exist is ok, connection error is not
+    return !error || error.code !== "PGRST003"; // Se a tabela não existir, ainda considera conectado
   } catch (error) {
     console.warn("Supabase connectivity test failed:", error);
     return false;
@@ -241,4 +225,12 @@ export interface Database {
       };
     };
   };
+}
+
+
+// 🐞 Opcional: log de configuração em desenvolvimento
+if (import.meta.env.DEV) {
+  console.log("🔧 Supabase Configuration:");
+  console.log("- URL:", supabaseUrl);
+  console.log("- Using demo credentials:", isUsingDemoCredentials);
 }
