@@ -276,7 +276,7 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
           <Card className="border-2 shadow-xl">
             <CardHeader className="text-center pb-4">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <Sparkles className="w-5 h-5 text-primary" />
+                <Shield className="w-5 h-5 text-primary" />
                 <CardTitle className="text-xl">Bem-vindo</CardTitle>
               </div>
               <CardDescription className="text-base">
