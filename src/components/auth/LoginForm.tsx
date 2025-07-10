@@ -242,10 +242,10 @@ export default function LoginForm() {
 
                 <TabsContent value="login">
                   <form onSubmit={handleLogin} className="space-y-4">
-                    {loginError && (
+                    {error && activeTab === "login" && (
                       <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{loginError}</AlertDescription>
+                        <AlertDescription>{error}</AlertDescription>
                       </Alert>
                     )}
 
@@ -338,10 +338,10 @@ export default function LoginForm() {
 
                 <TabsContent value="signup">
                   <form onSubmit={handleSignup} className="space-y-4">
-                    {signupError && (
+                    {error && activeTab === "signup" && (
                       <Alert variant="destructive">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{signupError}</AlertDescription>
+                        <AlertDescription>{error}</AlertDescription>
                       </Alert>
                     )}
 
