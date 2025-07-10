@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 // ⚙️ Configurações vindas do .env
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://demo.supabase.co";
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "demo-key";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // 🔍 Verifica se está usando credenciais de demonstração
 export const isUsingDemoCredentials =
