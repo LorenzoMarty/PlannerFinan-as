@@ -19,6 +19,8 @@ class DataStorage {
   private static backupPrefix = "plannerfinBackup_";
 
   static saveUserData(userId: string, data: UserProfile): boolean {
+    if (typeof window === "undefined") return false;
+
     try {
       const dataWithVersion = {
         ...data,
@@ -45,6 +47,8 @@ class DataStorage {
   }
 
   static loadUserData(userId: string): UserProfile | null {
+    if (typeof window === "undefined") return null;
+
     try {
       const stored = localStorage.getItem(`${this.prefix}${userId}`);
       if (!stored) return null;
@@ -66,6 +70,8 @@ class DataStorage {
   }
 
   static createBackup(userId: string): boolean {
+    if (typeof window === "undefined") return false;
+
     try {
       const existing = localStorage.getItem(`${this.prefix}${userId}`);
       if (!existing) return false;
@@ -84,6 +90,8 @@ class DataStorage {
   }
 
   static recoverFromBackup(userId: string): UserProfile | null {
+    if (typeof window === "undefined") return null;
+
     try {
       const backupKeys = Object.keys(localStorage)
         .filter((key) => key.startsWith(`${this.backupPrefix}${userId}_`))
