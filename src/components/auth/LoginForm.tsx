@@ -84,44 +84,36 @@ export default function LoginForm() {
         return;
       }
 
-      if (data.session?.user) {
-        // Store user data in localStorage for ProtectedRoute compatibility
-        const userData = {
-          id: data.session.user.id,
-          email: data.session.user.email || email,
-          name: data.session.user.user_metadata?.name || name || "Usuário",
-          authenticated: true,
-        };
+     if (data.session?.user) {
+  const userData = {
+    id: data.session.user.id,
+    email: data.session.user.email || email,
+    name: data.session.user.user_metadata?.name || name || "Usuário",
+    authenticated: true,
+  };
 
-        localStorage.setItem("plannerfinUser", JSON.stringify(userData));
+  localStorage.setItem("plannerfinUser", JSON.stringify(userData));
 
-        // Log successful authentication
-        console.log("User authenticated successfully:", data.session.user.id);
+  // 🔍 BUSCAR PERFIL COMPLETO
+  const { data: profileData, error: profileError } = await supabase
+    .from("user_profiles")
+    .select("*")
+    .eq("id", data.session.user.id)
+    .single();
 
-        toast({
-          title: "Login realizado",
-          description: "Bem-vindo de volta!",
-        });
+  if (profileError) {
+    console.error("Erro ao buscar perfil:", profileError.message);
+  } else {
+    console.log("📄 Perfil carregado:", profileData);
+    toast({
+      title: `Bem-vindo, ${profileData.name}`,
+      description: profileData.bio || "Login bem-sucedido.",
+    });
+  }
 
-        // Navigate to dashboard - the UserDataProvider will handle loading the profile
-        navigate("/dashboard", { replace: true });
-        // Buscar perfil do usuário no Supabase
-const { data: profileData, error: profileError } = await supabase
-  .from("user_profiles")
-  .select("*")
-  .eq("id", data.session.user.id)
-  .single();
-
-if (profileError) {
-  console.error("Erro ao buscar perfil do usuário:", profileError.message);
-} else {
-  console.log("📄 Perfil carregado do Supabase:", profileData);
-  // Exemplo: mostrar nome e bio
-  toast({
-    title: `Olá, ${profileData.name}!`,
-    description: profileData.bio || "Login bem-sucedido",
-  });
+  navigate("/dashboard", { replace: true });
 }
+
 
       }
     } catch (err) {
