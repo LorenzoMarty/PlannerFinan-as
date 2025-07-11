@@ -563,6 +563,36 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     return () => clearInterval(interval);
   }, [currentUser]);
 
+  // Listen for session changes to reload data when user changes
+  useEffect(() => {
+    if (!useSupabase) return;
+
+    const checkSessionChanges = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const authUser = localStorage.getItem("plannerfinUser");
+
+      if (session?.user && authUser) {
+        try {
+          const storedUser = JSON.parse(authUser);
+          // If the session user ID doesn't match stored user, reload data
+          if (session.user.id !== currentUser?.id && storedUser.authenticated) {
+            console.log("Session user changed, reloading data");
+            await loadUserProfile(storedUser);
+          }
+        } catch (error) {
+          console.error("Error checking session changes:", error);
+        }
+      }
+    };
+
+    // Check periodically for session changes
+    const sessionInterval = setInterval(checkSessionChanges, 5000);
+
+    return () => clearInterval(sessionInterval);
+  }, [useSupabase, currentUser?.id]);
+
   const loadUserProfile = async (authUser: any) => {
     setIsLoading(true);
 
