@@ -229,6 +229,13 @@ export class SupabaseDataService {
         activeBudgetId: budgetsWithEntries[0]?.id || "",
       };
 
+      console.log("Successfully built user profile:", {
+        id: userProfile.id,
+        email: userProfile.email,
+        budgets: userProfile.budgets.length,
+        categories: userProfile.categories.length,
+      });
+
       return userProfile;
     } catch (error) {
       console.error("Error in getUserProfile:", error);
