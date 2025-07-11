@@ -153,7 +153,8 @@ export class SupabaseDataService {
 
       if (budgetsError) {
         console.error("Error getting budgets:", budgetsError);
-        return null;
+        console.log("Falling back to profile without budgets");
+        // Don't return null, continue with empty budgets array
       }
 
       // Get user categories
