@@ -15,12 +15,30 @@ export class SupabaseDataService {
     try {
       console.log("Creating user profile:", profile);
 
+      // Ensure we have a valid session
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error(
+          "No valid session for user profile creation:",
+          sessionError,
+        );
+        return false;
+      }
+
       // Check if profile already exists
-      const { data: existing } = await supabase
+      const { data: existing, error: checkError } = await supabase
         .from("user_profiles")
         .select("id")
         .eq("id", profile.id)
-        .single();
+        .maybeSingle();
+
+      if (checkError && checkError.code !== "PGRST116") {
+        console.error("Error checking existing profile:", checkError);
+        return false;
+      }
 
       if (existing) {
         console.log("User profile already exists");
@@ -222,6 +240,19 @@ export class SupabaseDataService {
     try {
       console.log("Creating budget entry:", entry);
 
+      // Ensure we have a valid session
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error(
+          "No valid session for budget entry creation:",
+          sessionError,
+        );
+        return null;
+      }
+
       const entryId = this.generateId();
       const entryData = {
         id: entryId,
@@ -242,6 +273,10 @@ export class SupabaseDataService {
 
       if (error) {
         console.error("Error creating budget entry:", error);
+        // Check if it's a permissions/RLS error
+        if (error.code === "42501" || error.code === "PGRST301") {
+          console.error("Permission denied - check RLS policies");
+        }
         return null;
       }
 
