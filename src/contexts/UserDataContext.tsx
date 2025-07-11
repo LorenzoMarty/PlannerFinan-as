@@ -407,7 +407,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [useSupabase, setUseSupabase] = useState(false); // Default to localStorage
 
-  // Load user data on mount
+  // Load user data on mount and setup auth state listener
   useEffect(() => {
     const initializeApp = async () => {
       if (typeof window === "undefined") return;
@@ -434,6 +434,35 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
     initializeApp();
 
+    // Listen for Supabase auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id);
+
+      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+        if (event === "SIGNED_OUT") {
+          // User signed out, clear session data
+          setCurrentUser(null);
+          localStorage.removeItem("plannerfinUser");
+        } else if (event === "TOKEN_REFRESHED" && session) {
+          // Token refreshed successfully, reload user data if needed
+          const authUser = localStorage.getItem("plannerfinUser");
+          if (authUser) {
+            try {
+              const user = JSON.parse(authUser);
+              if (user.authenticated && currentUser) {
+                // Reload user profile to sync with latest data
+                await loadUserProfile(user);
+              }
+            } catch (error) {
+              console.error("Error reloading user after token refresh:", error);
+            }
+          }
+        }
+      }
+    });
+
     // Listen for storage changes (when user logs in from another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (typeof window === "undefined") return;
@@ -455,8 +484,15 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
     if (typeof window !== "undefined") {
       window.addEventListener("storage", handleStorageChange);
-      return () => window.removeEventListener("storage", handleStorageChange);
     }
+
+    // Cleanup
+    return () => {
+      subscription?.unsubscribe();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("storage", handleStorageChange);
+      }
+    };
   }, []);
 
   // Save user data whenever it changes with enhanced persistence
@@ -487,16 +523,37 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   }, [currentUser]);
 
   const loadUserProfile = async (authUser: any) => {
-    // Get current Supabase session to ensure we have the correct user ID
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const userId = session?.user?.id || btoa(authUser.email); // Use Supabase user ID if available
-
     setIsLoading(true);
 
     try {
-      if (useSupabase && session?.user) {
+      // Get current Supabase session to ensure we have the correct user ID
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        // Clear invalid session and fall back to localStorage
+        await supabase.auth.signOut();
+      }
+
+      const userId = session?.user?.id || btoa(authUser.email);
+
+      if (useSupabase && session?.user && !sessionError) {
+        // Check if Supabase tables are available first
+        const tablesAvailable =
+          await SupabaseDataService.checkTablesAvailability();
+
+        if (!tablesAvailable) {
+          console.log(
+            "Supabase tables not available, switching to localStorage mode",
+          );
+          setUseSupabase(false);
+          localStorage.setItem("plannerfinUseSupabase", "false");
+          throw new Error("Tables not available");
+        }
+
         // Try to load from Supabase first
         let supabaseData = await SupabaseDataService.getUserProfile(userId);
 
@@ -505,15 +562,28 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           const localData = DataStorage.loadUserData(btoa(authUser.email));
 
           // Create user profile in Supabase
-          await SupabaseDataService.createUserProfile({
+          const profileCreated = await SupabaseDataService.createUserProfile({
             id: userId,
             email: authUser.email,
             name: authUser.name,
           });
 
+          if (!profileCreated) {
+            console.warn(
+              "Failed to create profile in Supabase, falling back to localStorage",
+            );
+            setUseSupabase(false);
+            localStorage.setItem("plannerfinUseSupabase", "false");
+            throw new Error("Profile creation failed");
+          }
+
           if (localData) {
             // Migrate data to Supabase
-            await SupabaseDataService.migrateFromLocalStorage(userId);
+            const migrationSuccess =
+              await SupabaseDataService.migrateFromLocalStorage(userId);
+            if (!migrationSuccess) {
+              console.warn("Failed to migrate data to Supabase");
+            }
           }
 
           // Load the migrated or newly created data
@@ -524,29 +594,41 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           setCurrentUser(supabaseData);
           return;
         }
-      } else {
-        // Use localStorage
-        const existingData = DataStorage.loadUserData(btoa(authUser.email));
-        if (existingData) {
-          setCurrentUser(existingData);
-          return;
-        }
       }
-    } catch (error) {
-      console.error("Error loading user profile:", error);
-      // Fallback to localStorage on error
+
+      // Use localStorage as fallback or primary storage
       const existingData = DataStorage.loadUserData(btoa(authUser.email));
       if (existingData) {
         setCurrentUser(existingData);
         return;
       }
+
+      // Create default user profile
+      const newProfile = createDefaultUserProfile(userId, authUser);
+      setCurrentUser(newProfile);
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+
+      // Always fallback to localStorage on any error
+      try {
+        const existingData = DataStorage.loadUserData(btoa(authUser.email));
+        if (existingData) {
+          setCurrentUser(existingData);
+          return;
+        }
+
+        // Create default user profile as last resort
+        const newProfile = createDefaultUserProfile(
+          btoa(authUser.email),
+          authUser,
+        );
+        setCurrentUser(newProfile);
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
+      }
     } finally {
       setIsLoading(false);
     }
-
-    // Create default user profile
-    const newProfile = createDefaultUserProfile(userId, authUser);
-    setCurrentUser(newProfile);
   };
 
   const createDefaultUserProfile = (

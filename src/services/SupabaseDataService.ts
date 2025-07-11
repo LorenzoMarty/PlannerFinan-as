@@ -7,6 +7,37 @@ import type {
 } from "@/contexts/UserDataContext";
 
 export class SupabaseDataService {
+  // ==================== CONNECTIVITY CHECK ====================
+
+  private static tablesAvailable: boolean | null = null;
+
+  static async checkTablesAvailability(): Promise<boolean> {
+    if (this.tablesAvailable !== null) {
+      return this.tablesAvailable;
+    }
+
+    try {
+      // Test if we can access the user_profiles table
+      const { error } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .limit(1);
+
+      if (error) {
+        console.log("Supabase tables not available:", error.message);
+        this.tablesAvailable = false;
+        return false;
+      }
+
+      this.tablesAvailable = true;
+      return true;
+    } catch (error) {
+      console.log("Supabase connectivity check failed:", error);
+      this.tablesAvailable = false;
+      return false;
+    }
+  }
+
   // ==================== USER PROFILES ====================
 
   static async createUserProfile(
@@ -15,12 +46,30 @@ export class SupabaseDataService {
     try {
       console.log("Creating user profile:", profile);
 
+      // Ensure we have a valid session
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error(
+          "No valid session for user profile creation:",
+          sessionError,
+        );
+        return false;
+      }
+
       // Check if profile already exists
-      const { data: existing } = await supabase
+      const { data: existing, error: checkError } = await supabase
         .from("user_profiles")
         .select("id")
         .eq("id", profile.id)
-        .single();
+        .maybeSingle();
+
+      if (checkError && checkError.code !== "PGRST116") {
+        console.error("Error checking existing profile:", checkError);
+        return false;
+      }
 
       if (existing) {
         console.log("User profile already exists");
@@ -59,6 +108,16 @@ export class SupabaseDataService {
 
       if (profileError) {
         console.error("Error getting user profile:", profileError);
+        // Check if it's a table not found error (404) or permission error
+        if (
+          profileError.code === "PGRST106" ||
+          profileError.code === "42P01" ||
+          profileError.message?.includes("404")
+        ) {
+          console.warn(
+            "Supabase tables not found or not accessible, this is expected for demo mode",
+          );
+        }
         return null;
       }
 
@@ -222,6 +281,19 @@ export class SupabaseDataService {
     try {
       console.log("Creating budget entry:", entry);
 
+      // Ensure we have a valid session
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error(
+          "No valid session for budget entry creation:",
+          sessionError,
+        );
+        return null;
+      }
+
       const entryId = this.generateId();
       const entryData = {
         id: entryId,
@@ -242,6 +314,10 @@ export class SupabaseDataService {
 
       if (error) {
         console.error("Error creating budget entry:", error);
+        // Check if it's a permissions/RLS error
+        if (error.code === "42501" || error.code === "PGRST301") {
+          console.error("Permission denied - check RLS policies");
+        }
         return null;
       }
 
