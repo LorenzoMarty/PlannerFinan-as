@@ -560,40 +560,16 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           throw new Error("Tables not available");
         }
 
-        // Ensure user profile exists in Supabase first
-        const profileCreated = await SupabaseDataService.createUserProfile({
-          id: userId,
-          email: authUser.email,
-          name: authUser.name,
-        });
-
-        if (!profileCreated) {
-          console.warn(
-            "Failed to create/verify profile in Supabase, falling back to localStorage",
-          );
-          setUseSupabase(false);
-          localStorage.setItem("plannerfinUseSupabase", "false");
-          throw new Error("Profile creation/verification failed");
-        }
-
-        // Try to load from Supabase
+        // Try to load existing user data from Supabase
+        console.log("Loading user profile from Supabase for:", userId);
         let supabaseData = await SupabaseDataService.getUserProfile(userId);
 
         if (!supabaseData) {
-          // If no data in Supabase after profile creation, check localStorage and migrate
-          const localData = DataStorage.loadUserData(btoa(authUser.email));
-
-          if (localData) {
-            // Migrate data to Supabase
-            const migrationSuccess =
-              await SupabaseDataService.migrateFromLocalStorage(userId);
-            if (!migrationSuccess) {
-              console.warn("Failed to migrate data to Supabase");
-            }
-          }
-
-          // Load the migrated or newly created data
-          supabaseData = await SupabaseDataService.getUserProfile(userId);
+          console.log(
+            "No profile found in Supabase, user may need to register first",
+          );
+          // Fall back to localStorage or show error
+          throw new Error("User profile not found in database");
         }
 
         if (supabaseData) {
