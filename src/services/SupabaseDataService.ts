@@ -483,7 +483,10 @@ export class SupabaseDataService {
   // ==================== UTILITIES ====================
 
   static generateId(): string {
-    return crypto.randomUUID();
+    // Generate a shorter, more readable ID using timestamp + random
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 6);
+    return `${timestamp}_${random}`;
   }
 
   static generateBudgetCode(): string {
