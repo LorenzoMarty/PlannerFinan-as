@@ -823,6 +823,16 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       };
 
       if (useSupabase) {
+        // First, ensure the active budget exists in Supabase
+        const activeBudget = currentUser.budgets.find(
+          (b) => b.id === currentUser.activeBudgetId,
+        );
+
+        if (activeBudget) {
+          // Try to create budget in Supabase if it doesn't exist there
+          await SupabaseDataService.createBudget(activeBudget);
+        }
+
         const savedEntryId =
           await SupabaseDataService.createBudgetEntry(newEntry);
         if (savedEntryId) {
