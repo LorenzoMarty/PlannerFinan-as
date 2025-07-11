@@ -33,8 +33,10 @@ export default function Dashboard() {
   const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  // Defensive check for context availability
+  const userData = useUserData();
   const { currentUser, activeBudget, entries, createBudget, switchBudget } =
-    useUserData();
+    userData;
 
   const [selectedBudget, setSelectedBudget] = useState(activeBudget?.id || "");
 
