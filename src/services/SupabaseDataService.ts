@@ -129,10 +129,27 @@ export class SupabaseDataService {
       console.log("Profile found:", profile);
 
       // Get user budgets (where user is owner or collaborator)
-      const { data: budgets, error: budgetsError } = await supabase
-        .from("budgets")
-        .select("*")
-        .or(`owner_id.eq.${userId},collaborators.cs.{"${userId}"}`);
+      // Use separate queries to avoid complex OR with arrays
+      const [ownedBudgets, collaborativeBudgets] = await Promise.all([
+        supabase.from("budgets").select("*").eq("owner_id", userId),
+        supabase
+          .from("budgets")
+          .select("*")
+          .contains("collaborators", [userId]),
+      ]);
+
+      const budgetsError = ownedBudgets.error || collaborativeBudgets.error;
+
+      // Combine and deduplicate budgets
+      const allBudgets = [
+        ...(ownedBudgets.data || []),
+        ...(collaborativeBudgets.data || []),
+      ];
+
+      const budgets = allBudgets.filter(
+        (budget, index, self) =>
+          index === self.findIndex((b) => b.id === budget.id),
+      );
 
       if (budgetsError) {
         console.error("Error getting budgets:", budgetsError);
