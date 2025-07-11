@@ -258,7 +258,7 @@ export class SupabaseDataService {
         .from("budgets")
         .select("id")
         .eq("id", budget.id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         console.log("Budget already exists in Supabase:", budget.id);
