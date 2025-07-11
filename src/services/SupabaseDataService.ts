@@ -325,11 +325,15 @@ export class SupabaseDataService {
         .from("budgets")
         .select("id, owner_id, collaborators")
         .eq("id", entry.budgetId)
-        .single();
+        .maybeSingle();
 
-      if (budgetError || !budget) {
-        console.error("Budget not found or not accessible:", budgetError);
-        console.error(`Tried to access budget ID: ${entry.budgetId}`);
+      if (budgetError) {
+        console.error("Error checking budget access:", budgetError);
+        return null;
+      }
+
+      if (!budget) {
+        console.error("Budget not found:", entry.budgetId);
         return null;
       }
 
