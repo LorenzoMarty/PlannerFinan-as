@@ -436,7 +436,9 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       }
     };
 
-    initializeApp();
+    initializeApp().finally(() => {
+      setIsInitialized(true);
+    });
 
     // Listen for Supabase auth state changes
     const {
