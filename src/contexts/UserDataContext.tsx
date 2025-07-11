@@ -473,7 +473,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           try {
             const user = JSON.parse(authUser);
             if (user.authenticated) {
-              loadUserProfile(user);
+              await loadUserProfile(user);
             }
           } catch (error) {
             console.error("Error loading user:", error);
