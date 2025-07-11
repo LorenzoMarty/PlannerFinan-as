@@ -1144,10 +1144,39 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     }
   };
 
-  const toggleStorageMode = () => {
+  const toggleStorageMode = async () => {
     const newMode = !useSupabase;
     setUseSupabase(newMode);
     localStorage.setItem("plannerfinUseSupabase", newMode.toString());
+
+    // Reload user data with new storage mode
+    const authUser = localStorage.getItem("plannerfinUser");
+    if (authUser) {
+      try {
+        const user = JSON.parse(authUser);
+        if (user.authenticated) {
+          console.log("Reloading user data after storage mode change");
+          await loadUserProfile(user);
+        }
+      } catch (error) {
+        console.error("Error reloading data after storage mode change:", error);
+      }
+    }
+  };
+
+  const reloadUserData = async (): Promise<void> => {
+    const authUser = localStorage.getItem("plannerfinUser");
+    if (authUser) {
+      try {
+        const user = JSON.parse(authUser);
+        if (user.authenticated) {
+          console.log("Manually reloading user data");
+          await loadUserProfile(user);
+        }
+      } catch (error) {
+        console.error("Error in manual reload:", error);
+      }
+    }
   };
 
   // Computed values
