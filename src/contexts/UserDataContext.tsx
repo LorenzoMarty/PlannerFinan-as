@@ -336,7 +336,8 @@ interface UserDataContextType {
 
   // Migration operations
   migrateToSupabase: () => Promise<boolean>;
-  toggleStorageMode: () => void;
+  toggleStorageMode: () => Promise<void>;
+  reloadUserData: () => Promise<void>;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(
