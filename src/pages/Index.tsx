@@ -41,41 +41,7 @@ const Index = () => {
     checkAuth();
   }, [navigate, setUser]);
 
-  const handleLogin = async (email: string, password: string) => {
-    if (typeof window === "undefined") return;
-
-    try {
-      // Get the current session after login
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session?.user) {
-        const userData = {
-          email: session.user.email || email,
-          name: session.user.user_metadata?.name || email.split("@")[0],
-        };
-
-        // Store user info in localStorage
-        localStorage.setItem(
-          "plannerfinUser",
-          JSON.stringify({
-            ...userData,
-            authenticated: true,
-            loginTime: new Date().toISOString(),
-          }),
-        );
-
-        // Initialize user data context
-        await setUser(userData);
-        navigate("/dashboard");
-      }
-    } catch (error) {
-      console.error("Login handling error:", error);
-    }
-  };
-
-  return <LoginForm onLogin={handleLogin} />;
+  return <LoginForm />;
 };
 
 export default Index;

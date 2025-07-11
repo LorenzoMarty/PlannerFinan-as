@@ -21,6 +21,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: {
     headers: {
       "x-client-info": "fusion-starter@1.0.0",
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Prefer: "return=representation",
+    },
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 2,
     },
   },
 });

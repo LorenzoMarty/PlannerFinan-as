@@ -104,7 +104,7 @@ export class SupabaseDataService {
         .from("user_profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error("Error getting user profile:", profileError);
@@ -128,15 +128,33 @@ export class SupabaseDataService {
 
       console.log("Profile found:", profile);
 
-      // Get user budgets
-      const { data: budgets, error: budgetsError } = await supabase
-        .from("budgets")
-        .select("*")
-        .or(`owner_id.eq.${userId},collaborators.cs.{${userId}}`);
+      // Get user budgets (where user is owner or collaborator)
+      // Use separate queries to avoid complex OR with arrays
+      const [ownedBudgets, collaborativeBudgets] = await Promise.all([
+        supabase.from("budgets").select("*").eq("owner_id", userId),
+        supabase
+          .from("budgets")
+          .select("*")
+          .contains("collaborators", [userId]),
+      ]);
+
+      const budgetsError = ownedBudgets.error || collaborativeBudgets.error;
+
+      // Combine and deduplicate budgets
+      const allBudgets = [
+        ...(ownedBudgets.data || []),
+        ...(collaborativeBudgets.data || []),
+      ];
+
+      const budgets = allBudgets.filter(
+        (budget, index, self) =>
+          index === self.findIndex((b) => b.id === budget.id),
+      );
 
       if (budgetsError) {
         console.error("Error getting budgets:", budgetsError);
-        return null;
+        console.log("Falling back to profile without budgets");
+        // Don't return null, continue with empty budgets array
       }
 
       // Get user categories
@@ -147,7 +165,8 @@ export class SupabaseDataService {
 
       if (categoriesError) {
         console.error("Error getting categories:", categoriesError);
-        return null;
+        console.log("Falling back to profile without categories");
+        // Don't return null, continue with empty categories array
       }
 
       // Get budget entries for all user budgets
@@ -162,7 +181,8 @@ export class SupabaseDataService {
 
       if (entriesError) {
         console.error("Error getting entries:", entriesError);
-        return null;
+        console.log("Falling back to profile without entries");
+        // Don't return null, continue with empty entries array
       }
 
       // Build budget objects with entries
@@ -209,6 +229,13 @@ export class SupabaseDataService {
         activeBudgetId: budgetsWithEntries[0]?.id || "",
       };
 
+      console.log("Successfully built user profile:", {
+        id: userProfile.id,
+        email: userProfile.email,
+        budgets: userProfile.budgets.length,
+        categories: userProfile.categories.length,
+      });
+
       return userProfile;
     } catch (error) {
       console.error("Error in getUserProfile:", error);
@@ -253,6 +280,24 @@ export class SupabaseDataService {
     budget: Omit<Budget, "entries" | "createdAt" | "updatedAt">,
   ): Promise<boolean> {
     try {
+      // First check if budget already exists
+      const { data: existing, error: checkError } = await supabase
+        .from("budgets")
+        .select("id")
+        .eq("id", budget.id)
+        .maybeSingle();
+
+      if (existing) {
+        console.log("Budget already exists in Supabase:", budget.id);
+        return true;
+      }
+
+      // If not found error, proceed to create
+      if (checkError && checkError.code !== "PGRST116") {
+        console.error("Error checking existing budget:", checkError);
+        return false;
+      }
+
       const { error } = await supabase.from("budgets").insert({
         id: budget.id,
         name: budget.name,
@@ -263,9 +308,17 @@ export class SupabaseDataService {
 
       if (error) {
         console.error("Error creating budget:", error);
+        // If it's a duplicate key error, consider it success
+        if (error.code === "23505" && error.message.includes("budgets_pkey")) {
+          console.log(
+            "Budget already exists (duplicate key), considering success",
+          );
+          return true;
+        }
         return false;
       }
 
+      console.log("Budget created successfully in Supabase:", budget.id);
       return true;
     } catch (error) {
       console.error("Error in createBudget:", error);
@@ -294,6 +347,34 @@ export class SupabaseDataService {
         return null;
       }
 
+      // First, verify that the budget exists and user has access to it
+      const { data: budget, error: budgetError } = await supabase
+        .from("budgets")
+        .select("id, owner_id, collaborators")
+        .eq("id", entry.budgetId)
+        .maybeSingle();
+
+      if (budgetError) {
+        console.error("Error checking budget access:", budgetError);
+        return null;
+      }
+
+      if (!budget) {
+        console.error("Budget not found:", entry.budgetId);
+        return null;
+      }
+
+      // Verify user has access to this budget
+      const userId = session.user.id;
+      const hasAccess =
+        budget.owner_id === userId ||
+        (budget.collaborators && budget.collaborators.includes(userId));
+
+      if (!hasAccess) {
+        console.error("User does not have access to this budget");
+        return null;
+      }
+
       const entryId = this.generateId();
       const entryData = {
         id: entryId,
@@ -317,6 +398,12 @@ export class SupabaseDataService {
         // Check if it's a permissions/RLS error
         if (error.code === "42501" || error.code === "PGRST301") {
           console.error("Permission denied - check RLS policies");
+        }
+        // Check if it's a foreign key constraint error
+        if (error.code === "23503") {
+          console.error(
+            "Foreign key constraint violation - budget or user does not exist",
+          );
         }
         return null;
       }
@@ -427,7 +514,10 @@ export class SupabaseDataService {
   // ==================== UTILITIES ====================
 
   static generateId(): string {
-    return crypto.randomUUID();
+    // Generate a shorter, more readable ID using timestamp + random
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 6);
+    return `${timestamp}_${random}`;
   }
 
   static generateBudgetCode(): string {
