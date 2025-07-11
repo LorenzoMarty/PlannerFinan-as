@@ -7,6 +7,37 @@ import type {
 } from "@/contexts/UserDataContext";
 
 export class SupabaseDataService {
+  // ==================== CONNECTIVITY CHECK ====================
+
+  private static tablesAvailable: boolean | null = null;
+
+  static async checkTablesAvailability(): Promise<boolean> {
+    if (this.tablesAvailable !== null) {
+      return this.tablesAvailable;
+    }
+
+    try {
+      // Test if we can access the user_profiles table
+      const { error } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .limit(1);
+
+      if (error) {
+        console.log("Supabase tables not available:", error.message);
+        this.tablesAvailable = false;
+        return false;
+      }
+
+      this.tablesAvailable = true;
+      return true;
+    } catch (error) {
+      console.log("Supabase connectivity check failed:", error);
+      this.tablesAvailable = false;
+      return false;
+    }
+  }
+
   // ==================== USER PROFILES ====================
 
   static async createUserProfile(
