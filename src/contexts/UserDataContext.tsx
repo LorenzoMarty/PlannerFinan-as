@@ -487,16 +487,24 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   }, [currentUser]);
 
   const loadUserProfile = async (authUser: any) => {
-    // Get current Supabase session to ensure we have the correct user ID
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const userId = session?.user?.id || btoa(authUser.email); // Use Supabase user ID if available
-
     setIsLoading(true);
 
     try {
-      if (useSupabase && session?.user) {
+      // Get current Supabase session to ensure we have the correct user ID
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        // Clear invalid session and fall back to localStorage
+        await supabase.auth.signOut();
+      }
+
+      const userId = session?.user?.id || btoa(authUser.email);
+
+      if (useSupabase && session?.user && !sessionError) {
         // Try to load from Supabase first
         let supabaseData = await SupabaseDataService.getUserProfile(userId);
 
@@ -505,15 +513,28 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           const localData = DataStorage.loadUserData(btoa(authUser.email));
 
           // Create user profile in Supabase
-          await SupabaseDataService.createUserProfile({
+          const profileCreated = await SupabaseDataService.createUserProfile({
             id: userId,
             email: authUser.email,
             name: authUser.name,
           });
 
+          if (!profileCreated) {
+            console.warn(
+              "Failed to create profile in Supabase, falling back to localStorage",
+            );
+            setUseSupabase(false);
+            localStorage.setItem("plannerfinUseSupabase", "false");
+            throw new Error("Profile creation failed");
+          }
+
           if (localData) {
             // Migrate data to Supabase
-            await SupabaseDataService.migrateFromLocalStorage(userId);
+            const migrationSuccess =
+              await SupabaseDataService.migrateFromLocalStorage(userId);
+            if (!migrationSuccess) {
+              console.warn("Failed to migrate data to Supabase");
+            }
           }
 
           // Load the migrated or newly created data
@@ -524,29 +545,41 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           setCurrentUser(supabaseData);
           return;
         }
-      } else {
-        // Use localStorage
-        const existingData = DataStorage.loadUserData(btoa(authUser.email));
-        if (existingData) {
-          setCurrentUser(existingData);
-          return;
-        }
       }
-    } catch (error) {
-      console.error("Error loading user profile:", error);
-      // Fallback to localStorage on error
+
+      // Use localStorage as fallback or primary storage
       const existingData = DataStorage.loadUserData(btoa(authUser.email));
       if (existingData) {
         setCurrentUser(existingData);
         return;
       }
+
+      // Create default user profile
+      const newProfile = createDefaultUserProfile(userId, authUser);
+      setCurrentUser(newProfile);
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+
+      // Always fallback to localStorage on any error
+      try {
+        const existingData = DataStorage.loadUserData(btoa(authUser.email));
+        if (existingData) {
+          setCurrentUser(existingData);
+          return;
+        }
+
+        // Create default user profile as last resort
+        const newProfile = createDefaultUserProfile(
+          btoa(authUser.email),
+          authUser,
+        );
+        setCurrentUser(newProfile);
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
+      }
     } finally {
       setIsLoading(false);
     }
-
-    // Create default user profile
-    const newProfile = createDefaultUserProfile(userId, authUser);
-    setCurrentUser(newProfile);
   };
 
   const createDefaultUserProfile = (
