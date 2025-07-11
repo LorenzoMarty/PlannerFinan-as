@@ -357,43 +357,127 @@ O RLS (Row Level Security) garante que usuários só acessem dados aos quais tê
 
 ### Políticas Implementadas
 
+As políticas RLS foram otimizadas para fornecer permissões granulares e específicas para cada operação (SELECT, INSERT, UPDATE, DELETE).
+
 #### Para `user_profiles`:
 
 ```sql
--- Usuários só podem ver/editar seu próprio perfil
-CREATE POLICY "Users can view own profile"
-ON user_profiles FOR SELECT
-USING (auth.uid() = id);
+-- Usuários podem gerenciar seus próprios perfis
+CREATE POLICY "user_profiles_select_own" ON user_profiles
+    FOR SELECT TO authenticated
+    USING (auth.uid()::text = id);
 
-CREATE POLICY "Users can update own profile"
-ON user_profiles FOR UPDATE
-USING (auth.uid() = id);
+CREATE POLICY "user_profiles_insert_own" ON user_profiles
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid()::text = id);
+
+CREATE POLICY "user_profiles_update_own" ON user_profiles
+    FOR UPDATE TO authenticated
+    USING (auth.uid()::text = id)
+    WITH CHECK (auth.uid()::text = id);
+
+CREATE POLICY "user_profiles_delete_own" ON user_profiles
+    FOR DELETE TO authenticated
+    USING (auth.uid()::text = id);
 ```
 
 #### Para `budgets`:
 
 ```sql
--- Usuários podem ver orçamentos que possuem ou colaboram
-CREATE POLICY "Users can view own budgets"
-ON budgets FOR SELECT
-USING (
-  auth.uid() = owner_id OR
-  auth.uid() = ANY(collaborators)
-);
+-- Usuários podem gerenciar orçamentos que possuem ou colaboram
+CREATE POLICY "budgets_select_accessible" ON budgets
+    FOR SELECT TO authenticated
+    USING (
+        auth.uid()::text = owner_id OR
+        auth.uid()::text = ANY(collaborators)
+    );
+
+CREATE POLICY "budgets_insert_own" ON budgets
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid()::text = owner_id);
+
+CREATE POLICY "budgets_update_own" ON budgets
+    FOR UPDATE TO authenticated
+    USING (auth.uid()::text = owner_id)
+    WITH CHECK (auth.uid()::text = owner_id);
+
+CREATE POLICY "budgets_delete_own" ON budgets
+    FOR DELETE TO authenticated
+    USING (auth.uid()::text = owner_id);
+```
+
+#### Para `categories`:
+
+```sql
+-- Usuários podem gerenciar suas próprias categorias
+CREATE POLICY "categories_select_own" ON categories
+    FOR SELECT TO authenticated
+    USING (auth.uid()::text = user_id);
+
+CREATE POLICY "categories_insert_own" ON categories
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "categories_update_own" ON categories
+    FOR UPDATE TO authenticated
+    USING (auth.uid()::text = user_id)
+    WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "categories_delete_own" ON categories
+    FOR DELETE TO authenticated
+    USING (auth.uid()::text = user_id);
 ```
 
 #### Para `budget_entries`:
 
 ```sql
--- Usuários só podem ver entradas de orçamentos aos quais têm acesso
-CREATE POLICY "Users can view entries from accessible budgets"
-ON budget_entries FOR SELECT
-USING (
-  budget_id IN (
-    SELECT id FROM budgets
-    WHERE auth.uid() = owner_id OR auth.uid() = ANY(collaborators)
-  )
-);
+-- Usuários podem gerenciar entradas de orçamentos acessíveis
+CREATE POLICY "budget_entries_select_accessible" ON budget_entries
+    FOR SELECT TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM budgets
+            WHERE budgets.id = budget_entries.budget_id
+            AND (budgets.owner_id = auth.uid()::text OR auth.uid()::text = ANY(budgets.collaborators))
+        )
+    );
+
+CREATE POLICY "budget_entries_insert_accessible" ON budget_entries
+    FOR INSERT TO authenticated
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM budgets
+            WHERE budgets.id = budget_entries.budget_id
+            AND (budgets.owner_id = auth.uid()::text OR auth.uid()::text = ANY(budgets.collaborators))
+        )
+    );
+
+CREATE POLICY "budget_entries_update_accessible" ON budget_entries
+    FOR UPDATE TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM budgets
+            WHERE budgets.id = budget_entries.budget_id
+            AND (budgets.owner_id = auth.uid()::text OR auth.uid()::text = ANY(budgets.collaborators))
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM budgets
+            WHERE budgets.id = budget_entries.budget_id
+            AND (budgets.owner_id = auth.uid()::text OR auth.uid()::text = ANY(budgets.collaborators))
+        )
+    );
+
+CREATE POLICY "budget_entries_delete_accessible" ON budget_entries
+    FOR DELETE TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM budgets
+            WHERE budgets.id = budget_entries.budget_id
+            AND (budgets.owner_id = auth.uid()::text OR auth.uid()::text = ANY(budgets.collaborators))
+        )
+    );
 ```
 
 ## ⚛️ Integração com React
@@ -600,7 +684,7 @@ static async migrateFromLocalStorage(userId: string): Promise<boolean> {
 - **SupabaseStatus**: Mostra se está usando nuvem ou armazenamento local
 - **Badge visual**: Ícone de nuvem ou disco rígido
 
-#### 2. Configuraç��o de Dados
+#### 2. Configuração de Dados
 
 - **SupabaseConfig**: Permite alternar entre modos
 - **Toggle visual**: Botão para mudança de modo
@@ -703,6 +787,6 @@ Este projeto implementa uma integração robusta com Supabase que inclui:
 - ✅ **Migração automática** entre modos de armazenamento
 - ✅ **Monitoramento de status** em tempo real
 - ✅ **Sistema de backup** e recuperação
-- ��� **Tipagem TypeScript** completa
+- ✅ **Tipagem TypeScript** completa
 
 A arquitetura permite que a aplicação funcione tanto online (com Supabase) quanto offline (com localStorage), proporcionando uma experiência consistente independente da conectividade.
