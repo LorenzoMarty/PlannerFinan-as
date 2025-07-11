@@ -477,7 +477,41 @@ CREATE POLICY "budget_entries_delete_accessible" ON budget_entries
             WHERE budgets.id = budget_entries.budget_id
             AND (budgets.owner_id = auth.uid()::text OR auth.uid()::text = ANY(budgets.collaborators))
         )
-    );
+        );
+```
+
+#### Permissões de Tabela
+
+Além das políticas RLS, é necessário garantir que os usuários tenham as permissões adequadas nas tabelas:
+
+```sql
+-- Garantir permissões de tabela para usuários autenticados
+GRANT ALL ON user_profiles TO authenticated;
+GRANT ALL ON budgets TO authenticated;
+GRANT ALL ON categories TO authenticated;
+GRANT ALL ON budget_entries TO authenticated;
+
+-- Permitir acesso anônimo para criação de perfil (signup)
+GRANT SELECT, INSERT ON user_profiles TO anon;
+```
+
+#### Verificação das Políticas
+
+Para verificar se todas as políticas foram criadas corretamente:
+
+```sql
+SELECT
+    schemaname,
+    tablename,
+    policyname,
+    permissive,
+    roles,
+    cmd,
+    qual,
+    with_check
+FROM pg_policies
+WHERE tablename IN ('user_profiles', 'budgets', 'categories', 'budget_entries')
+ORDER BY tablename, policyname;
 ```
 
 ## ⚛️ Integração com React
