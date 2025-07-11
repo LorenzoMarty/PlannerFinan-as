@@ -77,6 +77,16 @@ export class SupabaseDataService {
 
       if (profileError) {
         console.error("Error getting user profile:", profileError);
+        // Check if it's a table not found error (404) or permission error
+        if (
+          profileError.code === "PGRST106" ||
+          profileError.code === "42P01" ||
+          profileError.message?.includes("404")
+        ) {
+          console.warn(
+            "Supabase tables not found or not accessible, this is expected for demo mode",
+          );
+        }
         return null;
       }
 
