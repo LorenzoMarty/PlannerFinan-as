@@ -565,11 +565,23 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         let supabaseData = await SupabaseDataService.getUserProfile(userId);
 
         if (!supabaseData) {
+          console.log("No profile found in Supabase for user:", userId);
           console.log(
-            "No profile found in Supabase, user may need to register first",
+            "User may need to complete registration or profile creation",
           );
-          // Fall back to localStorage or show error
-          throw new Error("User profile not found in database");
+
+          // Check if there's local data to fall back to
+          const localData = DataStorage.loadUserData(btoa(authUser.email));
+          if (localData) {
+            console.log("Found local data, using as fallback");
+            setCurrentUser(localData);
+            return;
+          }
+
+          // If no local data either, the user needs to complete registration
+          throw new Error(
+            "User profile not found - please contact support or register again",
+          );
         }
 
         if (supabaseData) {
