@@ -181,7 +181,8 @@ export class SupabaseDataService {
 
       if (entriesError) {
         console.error("Error getting entries:", entriesError);
-        return null;
+        console.log("Falling back to profile without entries");
+        // Don't return null, continue with empty entries array
       }
 
       // Build budget objects with entries
