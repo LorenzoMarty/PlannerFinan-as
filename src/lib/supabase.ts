@@ -13,6 +13,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: false,
+  },
+  db: {
+    schema: "public",
+  },
+  global: {
+    headers: {
+      "x-client-info": "fusion-starter@1.0.0",
+    },
   },
 });
 
