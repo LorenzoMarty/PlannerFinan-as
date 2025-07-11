@@ -541,6 +541,19 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       const userId = session?.user?.id || btoa(authUser.email);
 
       if (useSupabase && session?.user && !sessionError) {
+        // Check if Supabase tables are available first
+        const tablesAvailable =
+          await SupabaseDataService.checkTablesAvailability();
+
+        if (!tablesAvailable) {
+          console.log(
+            "Supabase tables not available, switching to localStorage mode",
+          );
+          setUseSupabase(false);
+          localStorage.setItem("plannerfinUseSupabase", "false");
+          throw new Error("Tables not available");
+        }
+
         // Try to load from Supabase first
         let supabaseData = await SupabaseDataService.getUserProfile(userId);
 
