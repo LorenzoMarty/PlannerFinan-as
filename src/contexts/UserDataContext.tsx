@@ -407,7 +407,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [useSupabase, setUseSupabase] = useState(false); // Default to localStorage
 
-  // Load user data on mount
+  // Load user data on mount and setup auth state listener
   useEffect(() => {
     const initializeApp = async () => {
       if (typeof window === "undefined") return;
@@ -434,6 +434,35 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
     initializeApp();
 
+    // Listen for Supabase auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id);
+
+      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+        if (event === "SIGNED_OUT") {
+          // User signed out, clear session data
+          setCurrentUser(null);
+          localStorage.removeItem("plannerfinUser");
+        } else if (event === "TOKEN_REFRESHED" && session) {
+          // Token refreshed successfully, reload user data if needed
+          const authUser = localStorage.getItem("plannerfinUser");
+          if (authUser) {
+            try {
+              const user = JSON.parse(authUser);
+              if (user.authenticated && currentUser) {
+                // Reload user profile to sync with latest data
+                await loadUserProfile(user);
+              }
+            } catch (error) {
+              console.error("Error reloading user after token refresh:", error);
+            }
+          }
+        }
+      }
+    });
+
     // Listen for storage changes (when user logs in from another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (typeof window === "undefined") return;
@@ -455,8 +484,15 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
     if (typeof window !== "undefined") {
       window.addEventListener("storage", handleStorageChange);
-      return () => window.removeEventListener("storage", handleStorageChange);
     }
+
+    // Cleanup
+    return () => {
+      subscription?.unsubscribe();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("storage", handleStorageChange);
+      }
+    };
   }, []);
 
   // Save user data whenever it changes with enhanced persistence
