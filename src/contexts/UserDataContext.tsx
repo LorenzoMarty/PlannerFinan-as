@@ -464,7 +464,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     });
 
     // Listen for storage changes (when user logs in from another tab)
-    const handleStorageChange = (e: StorageEvent) => {
+    const handleStorageChange = async (e: StorageEvent) => {
       if (typeof window === "undefined") return;
 
       if (e.key === "plannerfinUser") {
