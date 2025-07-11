@@ -253,6 +253,24 @@ export class SupabaseDataService {
     budget: Omit<Budget, "entries" | "createdAt" | "updatedAt">,
   ): Promise<boolean> {
     try {
+      // First check if budget already exists
+      const { data: existing, error: checkError } = await supabase
+        .from("budgets")
+        .select("id")
+        .eq("id", budget.id)
+        .single();
+
+      if (existing) {
+        console.log("Budget already exists in Supabase:", budget.id);
+        return true;
+      }
+
+      // If not found error, proceed to create
+      if (checkError && checkError.code !== "PGRST116") {
+        console.error("Error checking existing budget:", checkError);
+        return false;
+      }
+
       const { error } = await supabase.from("budgets").insert({
         id: budget.id,
         name: budget.name,
@@ -263,9 +281,17 @@ export class SupabaseDataService {
 
       if (error) {
         console.error("Error creating budget:", error);
+        // If it's a duplicate key error, consider it success
+        if (error.code === "23505" && error.message.includes("budgets_pkey")) {
+          console.log(
+            "Budget already exists (duplicate key), considering success",
+          );
+          return true;
+        }
         return false;
       }
 
+      console.log("Budget created successfully in Supabase:", budget.id);
       return true;
     } catch (error) {
       console.error("Error in createBudget:", error);
