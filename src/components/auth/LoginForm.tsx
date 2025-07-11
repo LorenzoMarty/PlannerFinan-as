@@ -105,6 +105,24 @@ export default function LoginForm() {
 
         // Navigate to dashboard - the UserDataProvider will handle loading the profile
         navigate("/dashboard", { replace: true });
+        // Buscar perfil do usuário no Supabase
+const { data: profileData, error: profileError } = await supabase
+  .from("user_profiles")
+  .select("*")
+  .eq("id", data.session.user.id)
+  .single();
+
+if (profileError) {
+  console.error("Erro ao buscar perfil do usuário:", profileError.message);
+} else {
+  console.log("📄 Perfil carregado do Supabase:", profileData);
+  // Exemplo: mostrar nome e bio
+  toast({
+    title: `Olá, ${profileData.name}!`,
+    description: profileData.bio || "Login bem-sucedido",
+  });
+}
+
       }
     } catch (err) {
       console.error("Login error:", err);
