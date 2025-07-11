@@ -1228,6 +1228,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         getStorageInfo,
         migrateToSupabase,
         toggleStorageMode,
+        reloadUserData,
       }}
     >
       {children}
