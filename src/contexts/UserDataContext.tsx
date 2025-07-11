@@ -446,24 +446,58 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session?.user?.id);
 
-      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
-        if (event === "SIGNED_OUT") {
-          // User signed out, clear session data
-          setCurrentUser(null);
-          localStorage.removeItem("plannerfinUser");
-        } else if (event === "TOKEN_REFRESHED" && session) {
-          // Token refreshed successfully, reload user data if needed
-          const authUser = localStorage.getItem("plannerfinUser");
-          if (authUser) {
-            try {
-              const user = JSON.parse(authUser);
-              if (user.authenticated && currentUser) {
-                // Reload user profile to sync with latest data
-                await loadUserProfile(user);
-              }
-            } catch (error) {
-              console.error("Error reloading user after token refresh:", error);
+      if (event === "SIGNED_OUT") {
+        // User signed out, clear session data
+        console.log("User signed out, clearing data");
+        setCurrentUser(null);
+        localStorage.removeItem("plannerfinUser");
+      } else if (event === "SIGNED_IN" && session?.user) {
+        // User signed in, load their profile data
+        console.log(
+          "User signed in, loading profile data for:",
+          session.user.id,
+        );
+
+        // Check if localStorage has user data for this session
+        const authUser = localStorage.getItem("plannerfinUser");
+        if (authUser) {
+          try {
+            const user = JSON.parse(authUser);
+            if (user.authenticated) {
+              console.log("Loading user profile from auth state change");
+              await loadUserProfile(user);
             }
+          } catch (error) {
+            console.error("Error loading user after sign in:", error);
+          }
+        } else {
+          // No localStorage data, create minimal user data to trigger loading
+          const userData = {
+            email: session.user.email || "",
+            name:
+              session.user.user_metadata?.name ||
+              session.user.email?.split("@")[0] ||
+              "Usuário",
+            authenticated: true,
+          };
+
+          localStorage.setItem("plannerfinUser", JSON.stringify(userData));
+          console.log("Loading user profile for new authenticated user");
+          await loadUserProfile(userData);
+        }
+      } else if (event === "TOKEN_REFRESHED" && session) {
+        // Token refreshed successfully, reload user data if needed
+        const authUser = localStorage.getItem("plannerfinUser");
+        if (authUser) {
+          try {
+            const user = JSON.parse(authUser);
+            if (user.authenticated && currentUser) {
+              // Reload user profile to sync with latest data
+              console.log("Reloading user profile after token refresh");
+              await loadUserProfile(user);
+            }
+          } catch (error) {
+            console.error("Error reloading user after token refresh:", error);
           }
         }
       }
