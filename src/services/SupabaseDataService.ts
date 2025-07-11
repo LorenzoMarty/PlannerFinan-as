@@ -128,11 +128,11 @@ export class SupabaseDataService {
 
       console.log("Profile found:", profile);
 
-      // Get user budgets
+      // Get user budgets (where user is owner or collaborator)
       const { data: budgets, error: budgetsError } = await supabase
         .from("budgets")
         .select("*")
-        .or(`owner_id.eq.${userId},collaborators.cs.{${userId}}`);
+        .or(`owner_id.eq.${userId},collaborators.cs.{"${userId}"}`);
 
       if (budgetsError) {
         console.error("Error getting budgets:", budgetsError);
