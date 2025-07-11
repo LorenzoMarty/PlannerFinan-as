@@ -346,6 +346,9 @@ const UserDataContext = createContext<UserDataContextType | undefined>(
 export const useUserData = () => {
   const context = useContext(UserDataContext);
   if (!context) {
+    console.error("useUserData hook called but no context found!");
+    console.error("Make sure the component is wrapped in UserDataProvider");
+    console.error("Current context value:", context);
     throw new Error("useUserData must be used within a UserDataProvider");
   }
   return context;
