@@ -560,28 +560,28 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           throw new Error("Tables not available");
         }
 
-        // Try to load from Supabase first
+        // Ensure user profile exists in Supabase first
+        const profileCreated = await SupabaseDataService.createUserProfile({
+          id: userId,
+          email: authUser.email,
+          name: authUser.name,
+        });
+
+        if (!profileCreated) {
+          console.warn(
+            "Failed to create/verify profile in Supabase, falling back to localStorage",
+          );
+          setUseSupabase(false);
+          localStorage.setItem("plannerfinUseSupabase", "false");
+          throw new Error("Profile creation/verification failed");
+        }
+
+        // Try to load from Supabase
         let supabaseData = await SupabaseDataService.getUserProfile(userId);
 
         if (!supabaseData) {
-          // If no data in Supabase, check localStorage and migrate
+          // If no data in Supabase after profile creation, check localStorage and migrate
           const localData = DataStorage.loadUserData(btoa(authUser.email));
-
-          // Create user profile in Supabase
-          const profileCreated = await SupabaseDataService.createUserProfile({
-            id: userId,
-            email: authUser.email,
-            name: authUser.name,
-          });
-
-          if (!profileCreated) {
-            console.warn(
-              "Failed to create profile in Supabase, falling back to localStorage",
-            );
-            setUseSupabase(false);
-            localStorage.setItem("plannerfinUseSupabase", "false");
-            throw new Error("Profile creation failed");
-          }
 
           if (localData) {
             // Migrate data to Supabase
@@ -597,6 +597,10 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         }
 
         if (supabaseData) {
+          console.log(
+            "Successfully loaded user profile from Supabase:",
+            supabaseData.email,
+          );
           setCurrentUser(supabaseData);
           return;
         }
