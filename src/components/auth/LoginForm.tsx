@@ -97,11 +97,15 @@ export default function LoginForm() {
 
         // Ensure user profile exists in Supabase
         try {
-          await SupabaseDataService.createUserProfile({
+          const profileCreated = await SupabaseDataService.createUserProfile({
             id: data.session.user.id,
             email: userData.email,
             name: userData.name,
           });
+
+          if (profileCreated) {
+            console.log("User profile verified/created successfully");
+          }
         } catch (profileError) {
           console.warn("Profile creation warning:", profileError);
           // Not a critical error, continue with login
@@ -112,7 +116,7 @@ export default function LoginForm() {
           description: "Bem-vindo de volta!",
         });
 
-        // Navigate to dashboard
+        // Navigate to dashboard - the UserDataProvider will handle loading the profile
         navigate("/dashboard", { replace: true });
       }
     } catch (err) {
