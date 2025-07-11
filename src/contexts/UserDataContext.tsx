@@ -409,6 +409,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [useSupabase, setUseSupabase] = useState(false); // Default to localStorage
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load user data on mount and setup auth state listener
   useEffect(() => {
