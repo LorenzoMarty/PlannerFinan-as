@@ -246,6 +246,7 @@ class DataStorage {
   }
 }
 
+// Tipagens principais
 export interface BudgetEntry {
   id: string;
   date: string;
@@ -295,24 +296,22 @@ interface UserDataContextType {
   isLoading: boolean;
   useSupabase: boolean;
 
-  // Budget operations
+  // Operações com orçamentos
   createBudget: (name: string) => Promise<string>;
   switchBudget: (budgetId: string) => void;
   deleteBudget: (budgetId: string) => Promise<boolean>;
 
-  // Entry operations
-  addEntry: (
-    entry: Omit<BudgetEntry, "id" | "userId" | "budgetId">,
-  ) => Promise<void>;
+  // Operações com entradas
+  addEntry: (entry: Omit<BudgetEntry, "id" | "userId" | "budgetId">) => Promise<void>;
   updateEntry: (id: string, updates: Partial<BudgetEntry>) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
 
-  // Category operations
+  // Operações com categorias
   addCategory: (category: Omit<Category, "id" | "userId">) => Promise<void>;
   updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
 
-  // User operations
+  // Operações com usuário
   setUser: (user: { email: string; name: string }) => Promise<void>;
   updateProfile: (updates: {
     name?: string;
@@ -323,37 +322,37 @@ interface UserDataContextType {
   }) => Promise<void>;
   clearUser: () => void;
 
-  // Collaboration operations
+  // Colaboração
   joinBudgetByCode: (code: string) => Promise<boolean>;
   findBudgetByCode: (code: string) => Promise<Budget | null>;
   leaveBudgetAsCollaborator: (budgetId: string) => Promise<boolean>;
 
-  // Data management operations
+  // Gerenciamento de dados
   exportUserData: () => string;
   importUserData: (jsonData: string) => boolean;
   createManualBackup: () => boolean;
   getStorageInfo: () => { used: number; total: number; available: number };
 
-  // Migration operations
+  // Migração e estado
   migrateToSupabase: () => Promise<boolean>;
   toggleStorageMode: () => Promise<void>;
   reloadUserData: () => Promise<void>;
 }
 
-const UserDataContext = createContext<UserDataContextType | undefined>(
-  undefined,
-);
+// Criação do contexto
+const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
+// Hook para acessar o contexto
 export const useUserData = () => {
   const context = useContext(UserDataContext);
   if (!context) {
     console.error("useUserData hook called but no context found!");
     console.error("Make sure the component is wrapped in UserDataProvider");
-    console.error("Current context value:", context);
     throw new Error("useUserData must be used within a UserDataProvider");
   }
   return context;
 };
+
 
 const defaultCategories: Omit<Category, "id" | "userId">[] = [
   {
