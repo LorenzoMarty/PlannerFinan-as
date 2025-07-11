@@ -104,7 +104,7 @@ export class SupabaseDataService {
         .from("user_profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error("Error getting user profile:", profileError);
