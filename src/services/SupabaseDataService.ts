@@ -294,6 +294,30 @@ export class SupabaseDataService {
         return null;
       }
 
+      // First, verify that the budget exists and user has access to it
+      const { data: budget, error: budgetError } = await supabase
+        .from("budgets")
+        .select("id, owner_id, collaborators")
+        .eq("id", entry.budgetId)
+        .single();
+
+      if (budgetError || !budget) {
+        console.error("Budget not found or not accessible:", budgetError);
+        console.error(`Tried to access budget ID: ${entry.budgetId}`);
+        return null;
+      }
+
+      // Verify user has access to this budget
+      const userId = session.user.id;
+      const hasAccess =
+        budget.owner_id === userId ||
+        (budget.collaborators && budget.collaborators.includes(userId));
+
+      if (!hasAccess) {
+        console.error("User does not have access to this budget");
+        return null;
+      }
+
       const entryId = this.generateId();
       const entryData = {
         id: entryId,
@@ -317,6 +341,12 @@ export class SupabaseDataService {
         // Check if it's a permissions/RLS error
         if (error.code === "42501" || error.code === "PGRST301") {
           console.error("Permission denied - check RLS policies");
+        }
+        // Check if it's a foreign key constraint error
+        if (error.code === "23503") {
+          console.error(
+            "Foreign key constraint violation - budget or user does not exist",
+          );
         }
         return null;
       }
