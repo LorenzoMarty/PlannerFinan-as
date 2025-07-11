@@ -15,40 +15,41 @@ import Settings from "./pages/Settings";
 import Collaboration from "./pages/Collaboration";
 import NotFound from "./pages/NotFound";
 
-// Protected Route wrapper
+// Protected Route wrapper - uses UserDataContext for auth state
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       if (typeof window === "undefined") return;
 
-      // Check both localStorage and Supabase session
+      // Only check localStorage for initial authentication state
       const localUser = localStorage.getItem("plannerfinUser");
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      setIsAuthenticated(!!(localUser && session?.user));
+      if (localUser) {
+        try {
+          const user = JSON.parse(localUser);
+          setIsAuthenticated(user.authenticated === true);
+        } catch {
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
     };
 
     checkAuth();
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        setIsAuthenticated(false);
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("plannerfinUser");
-        }
-      } else if (event === "SIGNED_IN" && session.user) {
-        setIsAuthenticated(true);
+    // Listen for storage changes only (not auth state changes)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "plannerfinUser") {
+        checkAuth();
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", handleStorageChange);
+      return () => window.removeEventListener("storage", handleStorageChange);
+    }
   }, []);
 
   if (isAuthenticated === null) {
