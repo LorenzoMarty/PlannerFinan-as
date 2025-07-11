@@ -95,21 +95,8 @@ export default function LoginForm() {
 
         localStorage.setItem("plannerfinUser", JSON.stringify(userData));
 
-        // Ensure user profile exists in Supabase
-        try {
-          const profileCreated = await SupabaseDataService.createUserProfile({
-            id: data.session.user.id,
-            email: userData.email,
-            name: userData.name,
-          });
-
-          if (profileCreated) {
-            console.log("User profile verified/created successfully");
-          }
-        } catch (profileError) {
-          console.warn("Profile creation warning:", profileError);
-          // Not a critical error, continue with login
-        }
+        // Log successful authentication
+        console.log("User authenticated successfully:", data.session.user.id);
 
         toast({
           title: "Login realizado",
