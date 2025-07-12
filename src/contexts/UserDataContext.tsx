@@ -293,8 +293,6 @@ interface UserDataContextType {
   categories: Category[];
   entries: BudgetEntry[];
   isLoading: boolean;
-  useSupabase: boolean;
-
   // Budget operations
   createBudget: (name: string) => Promise<string>;
   switchBudget: (budgetId: string) => void;
@@ -335,8 +333,6 @@ interface UserDataContextType {
   getStorageInfo: () => { used: number; total: number; available: number };
 
   // Migration operations
-  migrateToSupabase: () => Promise<boolean>;
-  toggleStorageMode: () => Promise<void>;
   reloadUserData: () => Promise<void>;
 }
 
@@ -406,7 +402,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 }) => {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [useSupabase, setUseSupabase] = useState(false); // Default to localStorage
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Load user data on mount and setup auth state listener
@@ -414,11 +409,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     const initializeApp = async () => {
       if (typeof window === "undefined") return;
 
-      // Load user preference for storage mode
-      const savedMode = localStorage.getItem("plannerfinUseSupabase");
-      if (savedMode !== null) {
-        setUseSupabase(savedMode === "true");
-      }
+      // Sempre usar Supabase, não há mais modo local
+      setIsInitialized(true);
 
       const authUser = localStorage.getItem("plannerfinUser");
       if (authUser) {
@@ -562,33 +554,31 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   // Listen for session changes to reload data when user changes
   useEffect(() => {
-    if (!useSupabase) return;
-
-    const checkSessionChanges = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const authUser = localStorage.getItem("plannerfinUser");
-
-      if (session?.user && authUser) {
-        try {
-          const storedUser = JSON.parse(authUser);
-          // If the session user ID doesn't match stored user, reload data
-          if (session.user.id !== currentUser?.id && storedUser.authenticated) {
-            console.log("Session user changed, reloading data");
-            await loadUserProfile(storedUser);
-          }
-        } catch (error) {
-          console.error("Error checking session changes:", error);
-        }
-      }
-    };
-
-    // Check periodically for session changes
-    const sessionInterval = setInterval(checkSessionChanges, 5000);
-
-    return () => clearInterval(sessionInterval);
-  }, [useSupabase, currentUser?.id]);
+  const checkSessionChanges = async () => {
+  const {
+  data: { session },
+  } = await supabase.auth.getSession();
+  const authUser = localStorage.getItem("plannerfinUser");
+  
+  if (session?.user && authUser) {
+  try {
+  const storedUser = JSON.parse(authUser);
+  // If the session user ID doesn't match stored user, reload data
+  if (session.user.id !== currentUser?.id && storedUser.authenticated) {
+  console.log("Session user changed, reloading data");
+  await loadUserProfile(storedUser);
+  }
+  } catch (error) {
+  console.error("Error checking session changes:", error);
+  }
+  }
+  };
+  
+  // Check periodically for session changes
+  const sessionInterval = setInterval(checkSessionChanges, 5000);
+  
+  return () => clearInterval(sessionInterval);
+  }, [currentUser?.id]);
 
   const loadUserProfile = async (authUser: any) => {
     setIsLoading(true);
@@ -608,17 +598,12 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
       const userId = session?.user?.id || btoa(authUser.email);
 
-      if (useSupabase && session?.user && !sessionError) {
+      if (session?.user && !sessionError) {
         // Check if Supabase tables are available first
         const tablesAvailable =
           await SupabaseDataService.checkTablesAvailability();
 
         if (!tablesAvailable) {
-          console.log(
-            "Supabase tables not available, switching to localStorage mode",
-          );
-          setUseSupabase(false);
-          localStorage.setItem("plannerfinUseSupabase", "false");
           throw new Error("Tables not available");
         }
 
@@ -627,22 +612,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         let supabaseData = await SupabaseDataService.getUserProfile(userId);
 
         if (!supabaseData) {
-          console.log("No profile found in Supabase for user:", userId);
-          console.log(
-            "User may need to complete registration or profile creation",
-          );
-
-          // Check if there's local data to fall back to
-          const localData = DataStorage.loadUserData(btoa(authUser.email));
-          if (localData) {
-            console.log("Found local data, using as fallback");
-            setCurrentUser(localData);
-            return;
-          }
-
-          // If no local data either, the user needs to complete registration
           throw new Error(
-            "User profile not found - please contact support or register again",
+            "User profile not found - please contatar o suporte ou registrar novamente",
           );
         }
 
@@ -656,16 +627,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         }
       }
 
-      // Use localStorage as fallback or primary storage
-      const existingData = DataStorage.loadUserData(btoa(authUser.email));
-      if (existingData) {
-        setCurrentUser(existingData);
-        return;
-      }
-
-      // Create default user profile
-      const newProfile = createDefaultUserProfile(userId, authUser);
-      setCurrentUser(newProfile);
+      // Se não autenticado, não carrega perfil
+      setCurrentUser(null);
     } catch (error) {
       console.error("Error loading user profile:", error);
 
@@ -740,15 +703,13 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     setIsLoading(true);
 
     try {
-      if (useSupabase) {
-        // Update in Supabase
-        const success = await SupabaseDataService.updateUserProfile(
-          currentUser.id,
-          updates,
-        );
-        if (!success) {
-          throw new Error("Failed to update profile in Supabase");
-        }
+      // Update in Supabase
+      const success = await SupabaseDataService.updateUserProfile(
+        currentUser.id,
+        updates,
+      );
+      if (!success) {
+        throw new Error("Failed to update profile in Supabase");
       }
 
       // Update current user profile in UserDataContext
@@ -771,14 +732,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           updatedAt: new Date().toISOString(),
         };
         localStorage.setItem("plannerfinUser", JSON.stringify(updatedAuth));
-
-        if (!useSupabase) {
-          // Also save to user data storage for persistence
-          const success = DataStorage.saveUserData(currentUser.id, updatedUser);
-          if (!success) {
-            console.warn("Failed to save user profile data");
-          }
-        }
       }
 
       setCurrentUser(updatedUser);
@@ -811,11 +764,9 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         updatedAt: new Date().toISOString(),
       };
 
-      if (useSupabase) {
-        const success = await SupabaseDataService.createBudget(newBudget);
-        if (!success) {
-          throw new Error("Failed to create budget in Supabase");
-        }
+      const success = await SupabaseDataService.createBudget(newBudget);
+      if (!success) {
+        throw new Error("Failed to create budget in Supabase");
       }
 
       setCurrentUser({
@@ -882,26 +833,20 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         budgetId: currentUser.activeBudgetId,
       };
 
-      if (useSupabase) {
-        // First, ensure the active budget exists in Supabase
-        const activeBudget = currentUser.budgets.find(
-          (b) => b.id === currentUser.activeBudgetId,
-        );
+      // First, ensure the active budget exists in Supabase
+      const activeBudget = currentUser.budgets.find(
+        (b) => b.id === currentUser.activeBudgetId,
+      );
 
-        if (activeBudget) {
-          // Try to create budget in Supabase if it doesn't exist there
-          await SupabaseDataService.createBudget(activeBudget);
-        }
+      if (activeBudget) {
+        // Try to create budget in Supabase if it doesn't exist there
+        await SupabaseDataService.createBudget(activeBudget);
+      }
 
-        const savedEntryId =
-          await SupabaseDataService.createBudgetEntry(newEntry);
-        if (savedEntryId) {
-          newEntry.id = savedEntryId;
-        } else {
-          console.warn("Failed to save entry to Supabase, using localStorage");
-          setUseSupabase(false);
-          localStorage.setItem("plannerfinUseSupabase", "false");
-        }
+      const savedEntryId =
+        await SupabaseDataService.createBudgetEntry(newEntry);
+      if (savedEntryId) {
+        newEntry.id = savedEntryId;
       }
 
       // Always update local state
@@ -1146,52 +1091,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     return DataStorage.getStorageInfo();
   };
 
-  const migrateToSupabase = async (): Promise<boolean> => {
-    if (!currentUser) return false;
-    setIsLoading(true);
-
-    try {
-      const success = await SupabaseDataService.migrateFromLocalStorage(
-        currentUser.id,
-      );
-      if (success) {
-        setUseSupabase(true);
-        localStorage.setItem("plannerfinUseSupabase", "true");
-        // Reload user data from Supabase
-        const authUser = JSON.parse(
-          localStorage.getItem("plannerfinUser") || "{}",
-        );
-        await loadUserProfile(authUser);
-      }
-      return success;
-    } catch (error) {
-      console.error("Error migrating to Supabase:", error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleStorageMode = async () => {
-    const newMode = !useSupabase;
-    setUseSupabase(newMode);
-    localStorage.setItem("plannerfinUseSupabase", newMode.toString());
-
-    // Reload user data with new storage mode
-    const authUser = localStorage.getItem("plannerfinUser");
-    if (authUser) {
-      try {
-        const user = JSON.parse(authUser);
-        if (user.authenticated) {
-          console.log("Reloading user data after storage mode change");
-          await loadUserProfile(user);
-        }
-      } catch (error) {
-        console.error("Error reloading data after storage mode change:", error);
-      }
-    }
-  };
-
+  
   const reloadUserData = async (): Promise<void> => {
     const authUser = localStorage.getItem("plannerfinUser");
     if (authUser) {
@@ -1233,7 +1133,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         categories,
         entries,
         isLoading,
-        useSupabase,
         createBudget,
         switchBudget,
         deleteBudget,
@@ -1253,8 +1152,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         importUserData,
         createManualBackup,
         getStorageInfo,
-        migrateToSupabase,
-        toggleStorageMode,
         reloadUserData,
       }}
     >
