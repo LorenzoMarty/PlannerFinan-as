@@ -406,11 +406,9 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   // Load user data on mount and setup auth state listener
   useEffect(() => {
+    console.log("[UserDataProvider] MONTADO");
     const initializeApp = async () => {
       if (typeof window === "undefined") return;
-
-      // Sempre usar Supabase, não há mais modo local
-      setIsInitialized(true);
 
       // Só tenta carregar perfil se houver sessão válida do Supabase
       const { data: { session } } = await supabase.auth.getSession();
