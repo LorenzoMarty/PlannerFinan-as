@@ -84,37 +84,34 @@ export default function LoginForm() {
         return;
       }
 
-     if (data.session?.user) {
-  const userData = {
-    id: data.session.user.id,
-    email: data.session.user.email || email,
-    name: data.session.user.user_metadata?.name || name || "Usuário",
-    authenticated: true,
-  };
+      if (data.session?.user) {
+        const userData = {
+          id: data.session.user.id,
+          email: data.session.user.email || email,
+          name: data.session.user.user_metadata?.name || name || "Usuário",
+          authenticated: true,
+        };
 
-  localStorage.setItem("plannerfinUser", JSON.stringify(userData));
+        localStorage.setItem("plannerfinUser", JSON.stringify(userData));
 
-  // 🔍 BUSCAR PERFIL COMPLETO
-  const { data: profileData, error: profileError } = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("id", data.session.user.id)
-    .single();
+        // 🔍 BUSCAR PERFIL COMPLETO
+        const { data: profileData, error: profileError } = await supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", data.session.user.id)
+          .single();
 
-  if (profileError) {
-    console.error("Erro ao buscar perfil:", profileError.message);
-  } else {
-    console.log("📄 Perfil carregado:", profileData);
-    toast({
-      title: `Bem-vindo, ${profileData.name}`,
-      description: profileData.bio || "Login bem-sucedido.",
-    });
-  }
+        if (profileError) {
+          console.error("Erro ao buscar perfil:", profileError.message);
+        } else {
+          console.log("📄 Perfil carregado:", profileData);
+          toast({
+            title: `Bem-vindo, ${profileData.name}`,
+            description: profileData.bio || "Login bem-sucedido.",
+          });
+        }
 
-  navigate("/dashboard", { replace: true });
-}
-
-
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       console.error("Login error:", err);
