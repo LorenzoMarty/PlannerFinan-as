@@ -378,7 +378,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
           };
           await loadUserProfile(authUser);
         } else {
-          // Não autenticado, inicializa mesmo assim
+          // Não autenticado, não tenta carregar perfil demo/localStorage
           setCurrentUser(null);
         }
       } catch (e) {
@@ -442,30 +442,24 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   // Listen for session changes to reload data when user changes
   useEffect(() => {
-  const checkSessionChanges = async () => {
-  const {
-  data: { session },
-  } = await supabase.auth.getSession();
-  const authUser = localStorage.getItem("plannerfinUser");
-  
-  if (session?.user && authUser) {
-  try {
-  const storedUser = JSON.parse(authUser);
-  // If the session user ID doesn't match stored user, reload data
-  if (session.user.id !== currentUser?.id && storedUser.authenticated) {
-  console.log("Session user changed, reloading data");
-  await loadUserProfile(storedUser);
-  }
-  } catch (error) {
-  console.error("Error checking session changes:", error);
-  }
-  }
-  };
-  
-  // Check periodically for session changes
-  const sessionInterval = setInterval(checkSessionChanges, 5000);
-  
-  return () => clearInterval(sessionInterval);
+    const checkSessionChanges = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      // Só tenta recarregar se houver sessão autenticada
+      if (session?.user) {
+        if (session.user.id !== currentUser?.id) {
+          console.log("Session user changed, reloading data");
+          const authUser = {
+            email: session.user.email || "",
+            name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Usuário",
+            authenticated: true,
+          };
+          await loadUserProfile(authUser);
+        }
+      }
+    };
+    // Check periodically for session changes
+    const sessionInterval = setInterval(checkSessionChanges, 5000);
+    return () => clearInterval(sessionInterval);
   }, [currentUser?.id]);
 
   const loadUserProfile = async (authUser: any) => {
