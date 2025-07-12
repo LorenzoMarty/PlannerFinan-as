@@ -363,6 +363,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   useEffect(() => {
     let unsub: (() => void) | undefined;
     let mounted = true;
+    // Não busca perfil automaticamente ao inicializar
     const checkSession = async () => {
       if (typeof window === "undefined") return;
       try {
@@ -370,15 +371,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         if (error) {
           console.error("Erro ao obter sessão do Supabase:", error);
         }
-        if (session?.user) {
-          const authUser = {
-            email: session.user.email || "",
-            name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Usuário",
-            authenticated: true,
-          };
-          await loadUserProfile(authUser);
-        } else {
-          // Não autenticado, não tenta carregar perfil demo/localStorage
+        // Apenas seta currentUser como null se não autenticado
+        if (!session?.user) {
           setCurrentUser(null);
         }
       } catch (e) {
