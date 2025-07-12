@@ -412,16 +412,20 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       // Sempre usar Supabase, não há mais modo local
       setIsInitialized(true);
 
-      const authUser = localStorage.getItem("plannerfinUser");
-      if (authUser) {
-        try {
-          const user = JSON.parse(authUser);
-          if (user.authenticated) {
-            await loadUserProfile(user);
+      // Só tenta carregar perfil se houver sessão válida do Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const authUser = localStorage.getItem("plannerfinUser");
+        if (authUser) {
+          try {
+            const user = JSON.parse(authUser);
+            if (user.authenticated) {
+              await loadUserProfile(user);
+            }
+          } catch (error) {
+            console.error("Error loading user:", error);
+            localStorage.removeItem("plannerfinUser");
           }
-        } catch (error) {
-          console.error("Error loading user:", error);
-          localStorage.removeItem("plannerfinUser");
         }
       }
     };
