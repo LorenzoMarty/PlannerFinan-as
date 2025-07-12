@@ -49,13 +49,10 @@ export default function LoginForm() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      const localUser = localStorage.getItem("plannerfinUser");
-
-      if (session?.user && localUser) {
+      if (session?.user) {
         navigate("/dashboard", { replace: true });
       }
     };
-
     checkAuthAndRedirect();
   }, [navigate]);
 
@@ -85,15 +82,6 @@ export default function LoginForm() {
       }
 
       if (data.session?.user) {
-        const userData = {
-          id: data.session.user.id,
-          email: data.session.user.email || email,
-          name: data.session.user.user_metadata?.name || name || "Usuário",
-          authenticated: true,
-        };
-
-        localStorage.setItem("plannerfinUser", JSON.stringify(userData));
-
         // 🔍 BUSCAR PERFIL COMPLETO
         const { data: profileData, error: profileError } = await supabase
           .from("user_profiles")
