@@ -359,15 +359,14 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load user data on mount and setup auth state listener
+  // Só inicializa o contexto após autenticação do usuário
   useEffect(() => {
-    console.log("[UserDataProvider] MONTADO");
-    const initializeApp = async () => {
+    let unsub: (() => void) | undefined;
+    let mounted = true;
+    const checkSession = async () => {
       if (typeof window === "undefined") return;
-      // Assume que já há sessão válida (AuthGate garante isso)
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        // Cria um objeto mínimo de authUser para carregar o perfil
         const authUser = {
           email: session.user.email || "",
           name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Usuário",
@@ -375,105 +374,29 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
         };
         await loadUserProfile(authUser);
       }
+      if (mounted) setIsInitialized(true);
     };
-
-    initializeApp().finally(() => {
-      setIsInitialized(true);
-    });
+    checkSession();
 
     // Listen for Supabase auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.id);
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
-        // User signed out, clear session data
-        setCurrentUser(null);
-        localStorage.removeItem("plannerfinUser");
         setCurrentUser(null);
         localStorage.removeItem("plannerfinUser");
       } else if (event === "SIGNED_IN" && session?.user) {
-        // User signed in, load their profile data
-        console.log(
-          "User signed in, loading profile data for:",
-          session.user.id,
-        );
-
-        // Check if localStorage has user data for this session
-        const authUser = localStorage.getItem("plannerfinUser");
-        if (authUser) {
-          try {
-            const user = JSON.parse(authUser);
-            if (user.authenticated) {
-              console.log("Loading user profile from auth state change");
-              await loadUserProfile(user);
-            }
-          } catch (error) {
-            console.error("Error loading user after sign in:", error);
-          }
-        } else {
-          // No localStorage data, create minimal user data to trigger loading
-          const userData = {
-            email: session.user.email || "",
-            name:
-              session.user.user_metadata?.name ||
-              session.user.email?.split("@")[0] ||
-              "Usuário",
-            authenticated: true,
-          };
-
-          localStorage.setItem("plannerfinUser", JSON.stringify(userData));
-          console.log("Loading user profile for new authenticated user");
-          await loadUserProfile(userData);
-        }
-      } else if (event === "TOKEN_REFRESHED" && session) {
-        // Token refreshed successfully, reload user data if needed
-        const authUser = localStorage.getItem("plannerfinUser");
-        if (authUser) {
-          try {
-            const user = JSON.parse(authUser);
-            if (user.authenticated && currentUser) {
-              // Reload user profile to sync with latest data
-              console.log("Reloading user profile after token refresh");
-              await loadUserProfile(user);
-            }
-          } catch (error) {
-            console.error("Error reloading user after token refresh:", error);
-          }
-        }
+        const authUser = {
+          email: session.user.email || "",
+          name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Usuário",
+          authenticated: true,
+        };
+        await loadUserProfile(authUser);
       }
     });
+    unsub = () => subscription?.unsubscribe();
 
-    // Listen for storage changes (when user logs in from another tab)
-    const handleStorageChange = async (e: StorageEvent) => {
-      if (typeof window === "undefined") return;
-
-      if (e.key === "plannerfinUser") {
-        const authUser = localStorage.getItem("plannerfinUser");
-        if (authUser) {
-          try {
-            const user = JSON.parse(authUser);
-            if (user.authenticated) {
-              await loadUserProfile(user);
-            }
-          } catch (error) {
-            console.error("Error loading user:", error);
-          }
-        }
-      }
-    };
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("storage", handleStorageChange);
-    }
-
-    // Cleanup
     return () => {
-      subscription?.unsubscribe();
-      if (typeof window !== "undefined") {
-        window.removeEventListener("storage", handleStorageChange);
-      }
+      mounted = false;
+      unsub?.();
     };
   }, []);
 
@@ -1068,8 +991,9 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const categories = currentUser ? currentUser.categories : [];
   const entries = activeBudget ? activeBudget.entries : [];
 
-  // Don't render children until context is initialized
-  if (!isInitialized) {
+
+  // Só renderiza provider se autenticado e inicializado
+  if (!isInitialized || !currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
