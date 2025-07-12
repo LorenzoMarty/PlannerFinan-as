@@ -15,12 +15,12 @@ export class SupabaseDataService {
         .update(updates)
         .eq('id', id);
       if (error) {
-        console.error('Erro ao atualizar entrada no Supabase:', error);
+        console.error('[Supabase updateBudgetEntry] Erro ao atualizar entrada:', error.message, error.details, error.hint, error.code, error);
         return false;
       }
       return true;
-    } catch (err) {
-      console.error('Erro inesperado ao atualizar entrada:', err);
+    } catch (err: any) {
+      console.error('[Supabase updateBudgetEntry] Erro inesperado ao atualizar entrada:', err?.message || err, err);
       return false;
     }
   }
