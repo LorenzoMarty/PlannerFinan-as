@@ -409,22 +409,16 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     console.log("[UserDataProvider] MONTADO");
     const initializeApp = async () => {
       if (typeof window === "undefined") return;
-
-      // Só tenta carregar perfil se houver sessão válida do Supabase
+      // Assume que já há sessão válida (AuthGate garante isso)
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const authUser = localStorage.getItem("plannerfinUser");
-        if (authUser) {
-          try {
-            const user = JSON.parse(authUser);
-            if (user.authenticated) {
-              await loadUserProfile(user);
-            }
-          } catch (error) {
-            console.error("Error loading user:", error);
-            localStorage.removeItem("plannerfinUser");
-          }
-        }
+        // Cria um objeto mínimo de authUser para carregar o perfil
+        const authUser = {
+          email: session.user.email || "",
+          name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Usuário",
+          authenticated: true,
+        };
+        await loadUserProfile(authUser);
       }
     };
 
