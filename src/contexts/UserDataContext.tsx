@@ -8,6 +8,198 @@ import React, {
 import { SupabaseDataService } from "@/services/SupabaseDataService";
 import { supabase } from "@/lib/supabase";
 
+// Data versioning for migrations
+const CURRENT_DATA_VERSION = "1.0.0";
+
+// Storage utilities for robust data persistence
+class DataStorage {
+  private static prefix = "plannerfinUserData_";
+  private static settingsPrefix = "plannerfinSettings";
+  private static backupPrefix = "plannerfinBackup_";
+
+  static saveUserData(userId: string, data: any): boolean {
+    if (typeof window === "undefined") return false;
+    try {
+      const dataWithVersion = {
+        ...data,
+        __version: CURRENT_DATA_VERSION,
+        __lastSaved: new Date().toISOString(),
+      };
+      const serialized = JSON.stringify(dataWithVersion);
+      this.createBackup(userId);
+      localStorage.setItem(`${this.prefix}${userId}`, serialized);
+      this.updateStorageMetadata();
+      return true;
+    } catch (error) {
+      console.error("Error saving user data:", error);
+      return false;
+    }
+  }
+
+  static loadUserData(userId: string): any | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = localStorage.getItem(`${this.prefix}${userId}`);
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      const migrated = this.migrateDataIfNeeded(parsed);
+      const { __version, __lastSaved, ...userData } = migrated;
+      return userData;
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      return this.recoverFromBackup(userId);
+    }
+  }
+
+  static createBackup(userId: string): boolean {
+    if (typeof window === "undefined") return false;
+    try {
+      const existing = localStorage.getItem(`${this.prefix}${userId}`);
+      if (!existing) return false;
+      const backupKey = `${this.backupPrefix}${userId}_${Date.now()}`;
+      localStorage.setItem(backupKey, existing);
+      this.cleanupOldBackups(userId);
+      return true;
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      return false;
+    }
+  }
+
+  static recoverFromBackup(userId: string): any | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const backupKeys = Object.keys(localStorage)
+        .filter((key) => key.startsWith(`${this.backupPrefix}${userId}_`))
+        .sort()
+        .reverse();
+      for (const key of backupKeys) {
+        try {
+          const backup = localStorage.getItem(key);
+          if (backup) {
+            const parsed = JSON.parse(backup);
+            const { __version, __lastSaved, ...userData } = parsed;
+            return userData;
+          }
+        } catch (backupError) {
+          continue;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Error recovering from backup:", error);
+      return null;
+    }
+  }
+
+  static cleanupOldBackups(userId: string): void {
+    try {
+      const backupKeys = Object.keys(localStorage)
+        .filter((key) => key.startsWith(`${this.backupPrefix}${userId}_`))
+        .sort()
+        .reverse();
+      const toDelete = backupKeys.slice(5);
+      toDelete.forEach((key) => {
+        localStorage.removeItem(key);
+      });
+    } catch (error) {
+      console.error("Error cleaning up backups:", error);
+    }
+  }
+
+  static updateStorageMetadata(): void {
+    try {
+      const metadata = {
+        lastUpdated: new Date().toISOString(),
+        dataVersion: CURRENT_DATA_VERSION,
+        userCount: Object.keys(localStorage).filter((key) => key.startsWith(this.prefix)).length,
+      };
+      localStorage.setItem("plannerfinMetadata", JSON.stringify(metadata));
+    } catch (error) {
+      console.error("Error updating metadata:", error);
+    }
+  }
+
+  static migrateDataIfNeeded(data: any): any {
+    if (!data.__version) {
+      return {
+        ...data,
+        __version: CURRENT_DATA_VERSION,
+      };
+    }
+    return data;
+  }
+
+  static exportAllData(): string {
+    try {
+      const allData: any = {};
+      Object.keys(localStorage).forEach((key) => {
+        if (
+          key.startsWith(this.prefix) ||
+          key === this.settingsPrefix ||
+          key === "plannerfinMetadata"
+        ) {
+          allData[key] = JSON.parse(localStorage.getItem(key) || "{}");
+        }
+      });
+      return JSON.stringify(
+        {
+          exportDate: new Date().toISOString(),
+          version: CURRENT_DATA_VERSION,
+          data: allData,
+        },
+        null,
+        2,
+      );
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      return "";
+    }
+  }
+
+  static importAllData(jsonData: string): boolean {
+    try {
+      const parsed = JSON.parse(jsonData);
+      if (!parsed.data || !parsed.version) {
+        throw new Error("Invalid export format");
+      }
+      const timestamp = Date.now();
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith(this.prefix) || key === this.settingsPrefix) {
+          const backupKey = `import_backup_${timestamp}_${key}`;
+          localStorage.setItem(backupKey, localStorage.getItem(key) || "");
+        }
+      });
+      Object.entries(parsed.data).forEach(([key, value]) => {
+        localStorage.setItem(key, JSON.stringify(value));
+      });
+      return true;
+    } catch (error) {
+      console.error("Error importing data:", error);
+      return false;
+    }
+  }
+
+  static getStorageInfo(): { used: number; total: number; available: number } {
+    try {
+      let used = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          used += localStorage.getItem(key)!.length + key.length;
+        }
+      }
+      const estimated = 5 * 1024 * 1024; // 5MB
+      return {
+        used,
+        total: estimated,
+        available: Math.max(0, estimated - used),
+      };
+    } catch (error) {
+      return { used: 0, total: 0, available: 0 };
+    }
+  }
+}
+
   // --- Move loadUserProfile definition above all useEffects ---
   const loadUserProfile = async (authUser: any) => {
     setIsLoading(true);
