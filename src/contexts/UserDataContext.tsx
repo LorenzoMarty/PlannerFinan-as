@@ -1016,6 +1016,8 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     );
   }
 
+  // O contexto pode ser inicializado mesmo sem usuário autenticado (ex: tela de login)
+
   return (
     <UserDataContext.Provider
       value={{
