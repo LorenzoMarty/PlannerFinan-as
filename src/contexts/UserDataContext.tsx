@@ -5,6 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import { SupabaseDataService } from "@/services/SupabaseDataService";
 import { supabase } from "@/lib/supabase";
 
@@ -351,13 +352,19 @@ const defaultCategories: Omit<Category, "id" | "userId">[] = [
 interface UserDataProviderProps {
   children: ReactNode;
 }
-
-export const UserDataProvider: React.FC<UserDataProviderProps> = ({
-  children,
-}) => {
+export const UserDataProvider: React.FC<UserDataProviderProps> = (props) => {
+  const { children } = props;
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Redireciona para o dashboard se o usuário estiver autenticado
+  useEffect(() => {
+    if (isInitialized && currentUser) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isInitialized, currentUser, navigate]);
 
   // Só inicializa o contexto após autenticação do usuário
   useEffect(() => {
@@ -734,23 +741,30 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     updates: Partial<BudgetEntry>,
   ): Promise<void> => {
     if (!currentUser) return;
-
-    const updatedBudgets = currentUser.budgets.map((budget) =>
-      budget.id === currentUser.activeBudgetId
-        ? {
-            ...budget,
-            entries: budget.entries.map((entry) =>
-              entry.id === id ? { ...entry, ...updates } : entry,
-            ),
-            updatedAt: new Date().toISOString(),
-          }
-        : budget,
-    );
-
-    setCurrentUser({
-      ...currentUser,
-      budgets: updatedBudgets,
-    });
+    setIsLoading(true);
+    try {
+      // Atualiza localmente
+      const updatedBudgets = currentUser.budgets.map((budget) =>
+        budget.id === currentUser.activeBudgetId
+          ? {
+              ...budget,
+              entries: budget.entries.map((entry) =>
+                entry.id === id ? { ...entry, ...updates } : entry,
+              ),
+              updatedAt: new Date().toISOString(),
+            }
+          : budget,
+      );
+      setCurrentUser({
+        ...currentUser,
+        budgets: updatedBudgets,
+      });
+    } catch (error) {
+      console.error("Error updating entry:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const deleteEntry = async (id: string): Promise<void> => {
