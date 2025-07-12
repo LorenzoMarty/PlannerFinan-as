@@ -440,7 +440,55 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
       if (event === "SIGNED_OUT") {
         // User signed out, clear session data
-        console.log("User signed out, clearing data");
+        console.log("User signe<SettingsProvider>
+  <TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <AutoSaveNotification />
+    <BrowserRouter>
+      <Routes>
+        {/* Rotas públicas */}
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<LoginForm />} />
+
+        {/* Rotas protegidas */}
+        <Route
+          path="/dashboard"
+          element={
+            <AuthGate>
+              <Dashboard />
+            </AuthGate>
+          }
+        />
+        {/* ...outras rotas protegidas */}
+      </Routes>
+    </BrowserRouter>
+  </TooltipProvider>
+</SettingsProvider><SettingsProvider>
+  <TooltipProvider>
+    <Toaster />
+    <Sonner />
+    <AutoSaveNotification />
+    <BrowserRouter>
+      <Routes>
+        {/* Rotas públicas */}
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<LoginForm />} />
+
+        {/* Rotas protegidas */}
+        <Route
+          path="/dashboard"
+          element={
+            <AuthGate>
+              <Dashboard />
+            </AuthGate>
+          }
+        />
+        {/* ...outras rotas protegidas */}
+      </Routes>
+    </BrowserRouter>
+  </TooltipProvider>
+</SettingsProvider>d out, clearing data");
         setCurrentUser(null);
         localStorage.removeItem("plannerfinUser");
       } else if (event === "SIGNED_IN" && session?.user) {
