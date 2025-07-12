@@ -365,21 +365,34 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     let mounted = true;
     const checkSession = async () => {
       if (typeof window === "undefined") return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const authUser = {
-          email: session.user.email || "",
-          name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Usuário",
-          authenticated: true,
-        };
-        await loadUserProfile(authUser);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Erro ao obter sessão do Supabase:", error);
+        }
+        if (session?.user) {
+          const authUser = {
+            email: session.user.email || "",
+            name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Usuário",
+            authenticated: true,
+          };
+          await loadUserProfile(authUser);
+        } else {
+          // Não autenticado, inicializa mesmo assim
+          setCurrentUser(null);
+        }
+      } catch (e) {
+        console.error("Erro inesperado ao checar sessão:", e);
+        setCurrentUser(null);
+      } finally {
+        if (mounted) setIsInitialized(true);
       }
-      if (mounted) setIsInitialized(true);
     };
     checkSession();
 
     // Listen for Supabase auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[Supabase] Auth state changed:", event, session);
       if (event === "SIGNED_OUT") {
         setCurrentUser(null);
         localStorage.removeItem("plannerfinUser");
@@ -992,11 +1005,13 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const entries = activeBudget ? activeBudget.entries : [];
 
 
-  // Só renderiza provider se autenticado e inicializado
-  if (!isInitialized || !currentUser) {
+
+  // Só renderiza provider se inicializado
+  if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="mt-4 text-sm text-gray-500">Inicializando contexto de usuário...</div>
       </div>
     );
   }
