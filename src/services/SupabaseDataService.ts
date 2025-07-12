@@ -7,6 +7,23 @@ import type {
 } from "@/contexts/UserDataContext";
 
 export class SupabaseDataService {
+  // Atualiza uma entrada de orçamento no Supabase
+  static async updateBudgetEntry(id: string, updates: Partial<BudgetEntry>): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('budget_entries')
+        .update(updates)
+        .eq('id', id);
+      if (error) {
+        console.error('Erro ao atualizar entrada no Supabase:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Erro inesperado ao atualizar entrada:', err);
+      return false;
+    }
+  }
   // ==================== CONNECTIVITY CHECK ====================
 
   private static tablesAvailable: boolean | null = null;

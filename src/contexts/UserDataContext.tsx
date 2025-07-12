@@ -743,6 +743,11 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = (props) => {
     if (!currentUser) return;
     setIsLoading(true);
     try {
+      // Atualiza no Supabase
+      const success = await SupabaseDataService.updateBudgetEntry(id, updates);
+      if (!success) {
+        throw new Error("Falha ao atualizar entrada no Supabase");
+      }
       // Atualiza localmente
       const updatedBudgets = currentUser.budgets.map((budget) =>
         budget.id === currentUser.activeBudgetId
