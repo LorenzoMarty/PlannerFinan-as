@@ -464,7 +464,6 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   const loadUserProfile = async (authUser: any) => {
     setIsLoading(true);
-
     try {
       // Get current Supabase session to ensure we have the correct user ID
       const {
@@ -482,55 +481,37 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
       if (session?.user && !sessionError) {
         // Check if Supabase tables are available first
-        const tablesAvailable =
-          await SupabaseDataService.checkTablesAvailability();
-
+        const tablesAvailable = await SupabaseDataService.checkTablesAvailability();
         if (!tablesAvailable) {
           throw new Error("Tables not available");
         }
-
         // Try to load existing user data from Supabase
         console.log("Loading user profile from Supabase for:", userId);
         let supabaseData = await SupabaseDataService.getUserProfile(userId);
-
         if (!supabaseData) {
-          throw new Error(
-            "User profile not found - please contatar o suporte ou registrar novamente",
-          );
-        }
-
-        if (supabaseData) {
-          console.log(
-            "Successfully loaded user profile from Supabase:",
-            supabaseData.email,
-          );
-          setCurrentUser(supabaseData);
+          // Não cria perfil novo automaticamente para usuários autenticados
+          console.error("User profile not found in Supabase. Usuário autenticado mas sem perfil. currentUser=null");
+          setCurrentUser(null);
           return;
         }
+        // Perfil encontrado
+        console.log("Successfully loaded user profile from Supabase:", supabaseData.email);
+        setCurrentUser(supabaseData);
+        return;
       }
 
-      // Se não autenticado, não carrega perfil
-      setCurrentUser(null);
+      // Se não autenticado, tenta fallback localStorage ou cria perfil default
+      const existingData = DataStorage.loadUserData(btoa(authUser.email));
+      if (existingData) {
+        setCurrentUser(existingData);
+        return;
+      }
+      // Cria perfil default só para usuários não autenticados
+      const newProfile = createDefaultUserProfile(btoa(authUser.email), authUser);
+      setCurrentUser(newProfile);
     } catch (error) {
       console.error("Error loading user profile:", error);
-
-      // Always fallback to localStorage on any error
-      try {
-        const existingData = DataStorage.loadUserData(btoa(authUser.email));
-        if (existingData) {
-          setCurrentUser(existingData);
-          return;
-        }
-
-        // Create default user profile as last resort
-        const newProfile = createDefaultUserProfile(
-          btoa(authUser.email),
-          authUser,
-        );
-        setCurrentUser(newProfile);
-      } catch (fallbackError) {
-        console.error("Fallback also failed:", fallbackError);
-      }
+      setCurrentUser(null);
     } finally {
       setIsLoading(false);
     }
