@@ -1,47 +1,76 @@
 import SimpleLoginForm from "@/components/auth/SimpleLoginForm";
 import { useNavigate } from "react-router-dom";
+import { useUserData } from "@/contexts/UserDataContext";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { setUser } = useUserData();
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
+  // Check if user is already logged in
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/dashboard");
-      } else {
-        setLoading(false);
+    const checkAuth = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Session check error:", error);
+          setIsCheckingSession(false);
+          return;
+        }
+
+        if (session?.user) {
+          // User is already logged in, redirect to dashboard
+          console.log("User already logged in, redirecting to dashboard");
+          navigate("/dashboard", { replace: true });
+        } else {
+          setIsCheckingSession(false);
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+        setIsCheckingSession(false);
       }
     };
 
-    checkSession();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/dashboard");
-      }
-    });
-
-    return () => {
-      authListener?.unsubscribe();
-    };
+    checkAuth();
   }, [navigate]);
 
-  const handleLogin = async (email, password) => {
+  const handleLogin = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      // The onAuthStateChange listener will handle the redirect
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.session?.user) {
+        const userData = {
+          email: data.session.user.email || email,
+          name: data.session.user.user_metadata?.name || email.split("@")[0],
+        };
+
+        // Initialize user data context - the session will be handled by App.tsx
+        await setUser(userData);
+
+        // Navigation will be handled automatically by the ProtectedRoute in App.tsx
+        // when the auth state changes
+      }
     } catch (error) {
-      toast.error(error.message || "Erro ao fazer login");
+      console.error("Login error:", error);
+      throw error; // Let the form handle the error display
     }
   };
 
-  if (loading) {
+  // Show loading while checking session
+  if (isCheckingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
