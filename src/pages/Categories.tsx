@@ -59,6 +59,7 @@ export default function Categories() {
     isDialogOpen,
     setIsDialogOpen,
     editingCategory,
+    setEditingCategory,
     formData,
     setFormData,
     handleSubmit,
@@ -92,7 +93,6 @@ export default function Categories() {
     }).format(amount);
   };
 
-  
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
