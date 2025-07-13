@@ -52,10 +52,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       console.log("Auth state change:", event, session?.user?.id);
 
       if (event === "SIGNED_OUT" || !session) {
-        setSession(null);
-        // Clear any cached data when signed out
+        // Clear session and cached data first
         localStorage.removeItem("plannerfinUser");
-      } else {
+        setSession(null);
+        // Ensure we're on the login page
+        window.location.href = "/";
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(session);
       }
     });

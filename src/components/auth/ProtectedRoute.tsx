@@ -27,14 +27,27 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
-        setIsAuthenticated(!!session);
+
         if (!session) {
+          // No valid session
           localStorage.removeItem("plannerfinUser");
+          setIsAuthenticated(false);
+          return;
         }
+
+        // Verify session is still valid
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          throw refreshError;
+        }
+
+        setIsAuthenticated(true);
       } catch (error) {
         console.error("Error checking session:", error);
         localStorage.removeItem("plannerfinUser");
         setIsAuthenticated(false);
+        // Redirect to login on session error
+        window.location.href = "/";
       }
     };
 

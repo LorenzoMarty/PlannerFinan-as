@@ -113,35 +113,29 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const handleLogout = async () => {
     try {
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        console.error("Error signing out:", error);
-        toast({
-          title: "Erro ao sair",
-          description: "Houve um problema ao fazer logout",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Clear local storage and user data
+      // Clear local storage and user data first
       localStorage.removeItem("plannerfinUser");
       clearUser();
+
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error signing out:", error);
+        // Continue with logout even if there's an error
+      }
 
       toast({
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso",
       });
 
-      navigate("/");
+      // Navigate last
+      navigate("/", { replace: true });
     } catch (error) {
       console.error("Logout error:", error);
-      // Force logout even if Supabase fails
-      localStorage.removeItem("plannerfinUser");
-      clearUser();
-      navigate("/");
+      // Ensure navigation happens even if there's an error
+      navigate("/", { replace: true });
     }
   };
 
