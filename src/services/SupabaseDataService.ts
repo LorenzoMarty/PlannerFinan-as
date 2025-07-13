@@ -203,34 +203,33 @@ export class SupabaseDataService {
     try {
       console.log("Getting user profile for:", userId);
       
-      const session = await this.checkSession();
-      if (!session) {
-        console.log("No valid session found");
-        return null;
-      }
-
-      // Primeiro, buscar apenas o perfil do usuário
+      // Tentar buscar o perfil básico primeiro
       const { data: userProfile, error: profileError } = await supabase
         .from("user_profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
-      if (profileError) {
+      // Se houver erro que não seja "não encontrado", registrar
+      if (profileError && profileError.code !== 'PGRST116') {
         this.logError('getUserProfile', profileError);
         return null;
       }
 
-      if (!userProfile) {
-        console.log("No profile found for user:", userId);
-        return null;
-      }
+      // Se não encontrou o perfil, criar um perfil padrão
+      const baseProfile = userProfile || {
+        id: userId,
+        email: '',  // Será atualizado posteriormente
+        name: '',   // Será atualizado posteriormente
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
 
-      // Depois, buscar orçamentos e categorias em paralelo
+      // Buscar dados complementares em paralelo
       const [ownedBudgetsResult, categoriesResult] = await Promise.all([
-        // Get owned budgets (incluindo entradas)
+        // Get owned budgets (sem entradas para melhor performance)
         supabase.from("budgets")
-          .select("*, budget_entries(*)")
+          .select("id, name, code, owner_id, collaborators, created_at, updated_at")
           .eq("owner_id", userId),
 
         // Get user categories
@@ -244,33 +243,24 @@ export class SupabaseDataService {
         return null;
       }
 
-      // Usar apenas os orçamentos do proprietário por enquanto para melhorar a performance
-      const budgets = ownedBudgetsResult.data || [];
+      // Processar os orçamentos base
+      const baseBudgets = (ownedBudgetsResult.data || []).map(budget => ({
+        id: budget.id,
+        name: budget.name,
+        code: budget.code,
+        ownerId: budget.owner_id,
+        collaborators: budget.collaborators || [],
+        entries: [], // Será preenchido posteriormente
+        createdAt: budget.created_at,
+        updatedAt: budget.updated_at
+      }));
 
       // Build final user profile
       const userProfileData: UserProfile = {
-        id: userProfile.id,
-        email: userProfile.email,
-        name: userProfile.name,
-        budgets: budgets.map(budget => ({
-          id: budget.id,
-          name: budget.name,
-          code: budget.code,
-          ownerId: budget.owner_id,
-          collaborators: budget.collaborators || [],
-          entries: (budget.budget_entries || []).map(entry => ({
-            id: entry.id,
-            date: entry.date,
-            description: entry.description,
-            category: entry.category,
-            amount: entry.amount,
-            type: entry.type as "income" | "expense",
-            userId: entry.user_id,
-            budgetId: entry.budget_id
-          })),
-          createdAt: budget.created_at,
-          updatedAt: budget.updated_at
-        })),
+        id: baseProfile.id,
+        email: baseProfile.email,
+        name: baseProfile.name,
+        budgets: baseBudgets,
         categories: (categoriesResult.data || []).map(cat => ({
           id: cat.id,
           name: cat.name,
@@ -280,11 +270,22 @@ export class SupabaseDataService {
           description: cat.description,
           userId: cat.user_id
         })),
-        activeBudgetId: budgets[0]?.id || ''
+        activeBudgetId: baseBudgets[0]?.id || ''
       };
 
-      // Carregar orçamentos colaborativos em segundo plano se necessário
-      if (budgets.length === 0) {
+      // Carregar entradas e orçamentos colaborativos em segundo plano
+      if (baseBudgets.length > 0) {
+        // Carregar entradas para os orçamentos existentes
+        this.loadBudgetEntries(baseBudgets.map(b => b.id)).then(entriesByBudget => {
+          userProfileData.budgets = baseBudgets.map(budget => ({
+            ...budget,
+            entries: entriesByBudget[budget.id] || []
+          }));
+        }).catch(error => {
+          this.logError('loadBudgetEntries', error);
+        });
+      } else {
+        // Se não há orçamentos próprios, tentar carregar colaborativos
         this.loadCollaborativeBudgets(userId).then(collaborativeBudgets => {
           if (collaborativeBudgets && collaborativeBudgets.length > 0) {
             userProfileData.budgets = collaborativeBudgets;
@@ -478,6 +479,43 @@ export class SupabaseDataService {
     } catch (error) {
       this.logError('createBudget', error);
       return false;
+    }
+  }
+
+  private static async loadBudgetEntries(budgetIds: string[]): Promise<Record<string, BudgetEntry[]>> {
+    try {
+      if (!budgetIds.length) return {};
+
+      const { data: entries, error } = await supabase
+        .from('budget_entries')
+        .select('*')
+        .in('budget_id', budgetIds);
+
+      if (error) {
+        this.logError('loadBudgetEntries', error);
+        return {};
+      }
+
+      // Organizar entradas por orçamento
+      return entries.reduce((acc, entry) => {
+        if (!acc[entry.budget_id]) {
+          acc[entry.budget_id] = [];
+        }
+        acc[entry.budget_id].push({
+          id: entry.id,
+          date: entry.date,
+          description: entry.description,
+          category: entry.category,
+          amount: entry.amount,
+          type: entry.type as "income" | "expense",
+          userId: entry.user_id,
+          budgetId: entry.budget_id
+        });
+        return acc;
+      }, {} as Record<string, BudgetEntry[]>);
+    } catch (error) {
+      this.logError('loadBudgetEntries', error);
+      return {};
     }
   }
 
