@@ -204,36 +204,34 @@ export class SupabaseDataService {
       console.log("Getting user profile for:", userId);
       
       const session = await this.checkSession();
-      if (!session) return null;
+      if (!session) {
+        console.log("No valid session found");
+        return null;
+      }
 
-      // Realizar todas as consultas em paralelo
-      const [
-        profileResult,
-        ownedBudgetsResult,
-        collaborativeBudgetsResult,
-        categoriesResult
-      ] = await Promise.all([
-        // Get user profile
-        supabase.from("user_profiles")
-          .select("*")
-          .eq("id", userId)
-          .single(),
+      // Primeiro, buscar apenas o perfil do usuário
+      const { data: userProfile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
-        // Get owned budgets
+      if (profileError) {
+        this.logError('getUserProfile', profileError);
+        return null;
+      }
+
+      if (!userProfile) {
+        console.log("No profile found for user:", userId);
+        return null;
+      }
+
+      // Depois, buscar orçamentos e categorias em paralelo
+      const [ownedBudgetsResult, categoriesResult] = await Promise.all([
+        // Get owned budgets (incluindo entradas)
         supabase.from("budgets")
-          .select(`
-            *,
-            budget_entries (*)
-          `)
+          .select("*, budget_entries(*)")
           .eq("owner_id", userId),
-
-        // Get collaborative budgets
-        supabase.from("budgets")
-          .select(`
-            *,
-            budget_entries (*)
-          `)
-          .contains("collaborators", [userId]),
 
         // Get user categories
         supabase.from("categories")
@@ -241,31 +239,19 @@ export class SupabaseDataService {
           .eq("user_id", userId)
       ]);
 
-      // Verificar erros do perfil primeiro
-      if (profileResult.error) {
-        this.logError('getUserProfile', profileResult.error);
+      if (ownedBudgetsResult.error) {
+        this.logError('getUserProfile', ownedBudgetsResult.error);
         return null;
       }
 
-      const profile = profileResult.data;
-      if (!profile) {
-        console.log("No profile found for user:", userId);
-        return null;
-      }
-
-      // Combinar e deduplicar orçamentos
-      const budgets = [
-        ...(ownedBudgetsResult.data || []),
-        ...(collaborativeBudgetsResult.data || [])
-      ].filter((budget, index, self) => 
-        index === self.findIndex((b) => b.id === budget.id)
-      );
+      // Usar apenas os orçamentos do proprietário por enquanto para melhorar a performance
+      const budgets = ownedBudgetsResult.data || [];
 
       // Build final user profile
-      return {
-        id: profile.id,
-        email: profile.email,
-        name: profile.name,
+      const userProfileData: UserProfile = {
+        id: userProfile.id,
+        email: userProfile.email,
+        name: userProfile.name,
         budgets: budgets.map(budget => ({
           id: budget.id,
           name: budget.name,
@@ -296,6 +282,20 @@ export class SupabaseDataService {
         })),
         activeBudgetId: budgets[0]?.id || ''
       };
+
+      // Carregar orçamentos colaborativos em segundo plano se necessário
+      if (budgets.length === 0) {
+        this.loadCollaborativeBudgets(userId).then(collaborativeBudgets => {
+          if (collaborativeBudgets && collaborativeBudgets.length > 0) {
+            userProfileData.budgets = collaborativeBudgets;
+            userProfileData.activeBudgetId = collaborativeBudgets[0].id;
+          }
+        }).catch(error => {
+          this.logError('loadCollaborativeBudgets', error);
+        });
+      }
+
+      return userProfileData;
     } catch (error) {
       this.logError('getUserProfile', error);
       return null;
@@ -478,6 +478,43 @@ export class SupabaseDataService {
     } catch (error) {
       this.logError('createBudget', error);
       return false;
+    }
+  }
+
+  private static async loadCollaborativeBudgets(userId: string): Promise<Budget[]> {
+    try {
+      const { data: collaborativeBudgets, error } = await supabase
+        .from("budgets")
+        .select("*, budget_entries(*)")
+        .contains("collaborators", [userId]);
+
+      if (error) {
+        this.logError('loadCollaborativeBudgets', error);
+        return [];
+      }
+
+      return (collaborativeBudgets || []).map(budget => ({
+        id: budget.id,
+        name: budget.name,
+        code: budget.code,
+        ownerId: budget.owner_id,
+        collaborators: budget.collaborators || [],
+        entries: (budget.budget_entries || []).map(entry => ({
+          id: entry.id,
+          date: entry.date,
+          description: entry.description,
+          category: entry.category,
+          amount: entry.amount,
+          type: entry.type as "income" | "expense",
+          userId: entry.user_id,
+          budgetId: entry.budget_id
+        })),
+        createdAt: budget.created_at,
+        updatedAt: budget.updated_at
+      }));
+    } catch (error) {
+      this.logError('loadCollaborativeBudgets', error);
+      return [];
     }
   }
 }
