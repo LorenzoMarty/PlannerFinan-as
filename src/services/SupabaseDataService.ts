@@ -16,6 +16,8 @@ interface SupabaseSession {
 export class SupabaseDataService {
   // State management
   private static tablesAvailable: boolean | null = null;
+  private static sessionCache: { session: SupabaseSession; timestamp: number } | null = null;
+  private static readonly SESSION_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
   // Private utility methods
   private static logError(method: string, error: any, message?: string): void {
@@ -23,18 +25,35 @@ export class SupabaseDataService {
   }
 
   private static async checkSession(): Promise<SupabaseSession | null> {
+    // Check cache first
+    if (this.sessionCache) {
+      const now = Date.now();
+      if (now - this.sessionCache.timestamp < this.SESSION_CACHE_DURATION) {
+        return this.sessionCache.session;
+      }
+      // Cache expired, clear it
+      this.sessionCache = null;
+    }
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       if (error || !session) {
         this.logError('checkSession', error || 'No session found');
         return null;
       }
-      return {
+      const sessionData = {
         user: {
           id: session.user.id,
           email: session.user.email || ''
         }
       };
+
+      // Cache the session
+      this.sessionCache = {
+        session: sessionData,
+        timestamp: Date.now()
+      };
+
+      return sessionData;
     } catch (error) {
       this.logError('checkSession', error);
       return null;
@@ -71,32 +90,47 @@ export class SupabaseDataService {
   }
 
   // Public methods
+  private static tablesAvailabilityPromise: Promise<boolean> | null = null;
+
   public static async checkTablesAvailability(): Promise<boolean> {
+    // Se já temos um resultado, retorne-o imediatamente
     if (this.tablesAvailable !== null) {
       return this.tablesAvailable;
     }
 
-    try {
-      console.log("Checking Supabase tables availability...");
-      const { error } = await supabase
-        .from("user_profiles")
-        .select("id")
-        .limit(1);
+    // Se já existe uma verificação em andamento, aguarde seu resultado
+    if (this.tablesAvailabilityPromise) {
+      return this.tablesAvailabilityPromise;
+    }
 
-      if (error) {
-        console.error("Supabase tables not available:", error.message);
+    // Inicie uma nova verificação
+    this.tablesAvailabilityPromise = (async () => {
+      try {
+        console.log("Checking Supabase tables availability...");
+        const { error } = await supabase
+          .from("user_profiles")
+          .select("id")
+          .limit(1);
+
+        if (error) {
+          console.error("Supabase tables not available:", error.message);
+          this.tablesAvailable = false;
+          return false;
+        }
+
+        this.tablesAvailable = true;
+        console.log("Supabase tables are available.");
+        return true;
+      } catch (error) {
+        console.error("Supabase connectivity check failed:", error);
         this.tablesAvailable = false;
         return false;
+      } finally {
+        this.tablesAvailabilityPromise = null;
       }
+    })();
 
-      this.tablesAvailable = true;
-      console.log("Supabase tables are available.");
-      return true;
-    } catch (error) {
-      console.error("Supabase connectivity check failed:", error);
-      this.tablesAvailable = false;
-      return false;
-    }
+    return this.tablesAvailabilityPromise;
   }
 
   public static async createUserProfile(
@@ -172,51 +206,60 @@ export class SupabaseDataService {
       const session = await this.checkSession();
       if (!session) return null;
 
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      // Realizar todas as consultas em paralelo
+      const [
+        profileResult,
+        ownedBudgetsResult,
+        collaborativeBudgetsResult,
+        categoriesResult
+      ] = await Promise.all([
+        // Get user profile
+        supabase.from("user_profiles")
+          .select("*")
+          .eq("id", userId)
+          .single(),
 
-      if (profileError) {
-        this.logError('getUserProfile', profileError);
+        // Get owned budgets
+        supabase.from("budgets")
+          .select(`
+            *,
+            budget_entries (*)
+          `)
+          .eq("owner_id", userId),
+
+        // Get collaborative budgets
+        supabase.from("budgets")
+          .select(`
+            *,
+            budget_entries (*)
+          `)
+          .contains("collaborators", [userId]),
+
+        // Get user categories
+        supabase.from("categories")
+          .select("*")
+          .eq("user_id", userId)
+      ]);
+
+      // Verificar erros do perfil primeiro
+      if (profileResult.error) {
+        this.logError('getUserProfile', profileResult.error);
         return null;
       }
 
+      const profile = profileResult.data;
       if (!profile) {
         console.log("No profile found for user:", userId);
         return null;
       }
 
-      // Get user's budgets
-      const [ownedBudgets, collaborativeBudgets] = await Promise.all([
-        supabase.from("budgets").select("*").eq("owner_id", userId),
-        supabase.from("budgets").select("*").contains("collaborators", [userId])
-      ]);
-
-      // Combine and deduplicate budgets
+      // Combinar e deduplicar orçamentos
       const budgets = [
-        ...(ownedBudgets.data || []),
-        ...(collaborativeBudgets.data || [])
+        ...(ownedBudgetsResult.data || []),
+        ...(collaborativeBudgetsResult.data || [])
       ].filter((budget, index, self) => 
         index === self.findIndex((b) => b.id === budget.id)
       );
-
-      // Get user categories
-      const { data: categories = [] } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("user_id", userId);
-
-      // Get entries for all budgets
-      const budgetIds = budgets.map(b => b.id);
-      const { data: entries = [] } = budgetIds.length > 0
-        ? await supabase
-            .from("budget_entries")
-            .select("*")
-            .in("budget_id", budgetIds)
-        : { data: [] };
 
       // Build final user profile
       return {
@@ -229,22 +272,20 @@ export class SupabaseDataService {
           code: budget.code,
           ownerId: budget.owner_id,
           collaborators: budget.collaborators || [],
-          entries: entries
-            .filter(entry => entry.budget_id === budget.id)
-            .map(entry => ({
-              id: entry.id,
-              date: entry.date,
-              description: entry.description,
-              category: entry.category,
-              amount: entry.amount,
-              type: entry.type as "income" | "expense",
-              userId: entry.user_id,
-              budgetId: entry.budget_id
-            })),
+          entries: (budget.budget_entries || []).map(entry => ({
+            id: entry.id,
+            date: entry.date,
+            description: entry.description,
+            category: entry.category,
+            amount: entry.amount,
+            type: entry.type as "income" | "expense",
+            userId: entry.user_id,
+            budgetId: entry.budget_id
+          })),
           createdAt: budget.created_at,
           updatedAt: budget.updated_at
         })),
-        categories: categories.map(cat => ({
+        categories: (categoriesResult.data || []).map(cat => ({
           id: cat.id,
           name: cat.name,
           type: cat.type,
