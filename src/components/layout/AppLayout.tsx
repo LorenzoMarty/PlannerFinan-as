@@ -117,9 +117,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
       clearUser();
       localStorage.removeItem("plannerfinUser");
       
-      // Sign out from Supabase which will clear the current session
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Use Promise.all to run cleanup tasks in parallel
+      await Promise.all([
+        // Sign out from Supabase which will clear the current session
+        supabase.auth.signOut(),
+        // Clear any cached data
+        new Promise(resolve => {
+          sessionStorage.clear();
+          resolve(true);
+        })
+      ]);
 
       toast({
         title: "Logout realizado",

@@ -29,18 +29,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         if (error) throw error;
 
         if (!session) {
-          // No valid session
+          // No valid session, clean up and redirect
           localStorage.removeItem("plannerfinUser");
+          sessionStorage.clear();
           setIsAuthenticated(false);
+          window.location.href = "/";
           return;
         }
 
-        // Verify session is still valid
-        const { error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) {
-          throw refreshError;
+        // Verify session is still valid and attempt refresh
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshData.session) {
+          throw new Error("Failed to refresh session");
         }
 
+        // Update session state if refresh was successful
         setIsAuthenticated(true);
       } catch (error) {
         console.error("Error checking session:", error);

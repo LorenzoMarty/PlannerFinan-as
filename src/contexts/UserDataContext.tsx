@@ -3,6 +3,7 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 import { SupabaseDataService } from "@/services/SupabaseDataService";
@@ -216,9 +217,26 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   const [useSupabase, setUseSupabase] = useState(true); // Default to Supabase
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize context
+  // Initialize context and setup cleanup
   useEffect(() => {
     setIsInitialized(true);
+
+    // Subscribe to auth state changes for session cleanup
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        clearUser();
+      }
+    });
+
+    // Cleanup function
+    return () => {
+      subscription.unsubscribe();
+      // Clear state on unmount
+      setCurrentUser(null);
+      setIsLoading(false);
+      setUseSupabase(true);
+      setIsInitialized(false);
+    };
   }, []);
 
   // Save user data whenever it changes
@@ -349,8 +367,47 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
     }
   };
 
-  const clearUser = () => {
-    setCurrentUser(null);
+  const clearUser = useCallback(async () => {
+    try {
+      // Clear Supabase session if available
+      if (useSupabase) {
+        await supabase.auth.signOut();
+      }
+
+      // Clear all storage
+      if (typeof window !== "undefined") {
+        // Clear localStorage
+        localStorage.clear();
+        // Clear session storage
+        sessionStorage.clear();
+      }
+    } catch (error) {
+      console.error("Error during cleanup:", error);
+    } finally {
+      // Always reset state
+      setCurrentUser(null);
+      setIsLoading(false);
+      setUseSupabase(false);
+      setIsInitialized(false);
+    }
+  }, [useSupabase]);
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith("plannerfin")) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Clear sessionStorage data
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith("plannerfin")) {
+          sessionStorage.removeItem(key);
+        }
+      });
+
+      // Reset state flags
+      setIsLoading(false);
+      setUseSupabase(true);
+    }
   };
 
   const createBudget = async (name: string): Promise<string> => {
