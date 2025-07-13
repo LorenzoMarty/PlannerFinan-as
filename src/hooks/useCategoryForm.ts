@@ -70,6 +70,7 @@ export const useCategoryForm = (addCategory, updateCategory) => {
     isDialogOpen,
     setIsDialogOpen,
     editingCategory,
+    setEditingCategory,
     formData,
     setFormData,
     handleSubmit,
