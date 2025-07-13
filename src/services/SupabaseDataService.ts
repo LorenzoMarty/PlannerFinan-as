@@ -9,6 +9,12 @@ import type {
 export class SupabaseDataService {
   // Atualiza uma entrada de orçamento no Supabase
   static async updateBudgetEntry(id: string, updates: Partial<BudgetEntry>): Promise<boolean> {
+    // Checa se há sessão válida antes de atualizar
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      console.error('[Supabase updateBudgetEntry] Sessão inválida ou ausente. Usuário precisa fazer login novamente.', sessionError);
+      return false;
+    }
     // Converte camelCase para snake_case e filtra apenas campos válidos
     const allowed = [
       'date', 'description', 'category', 'amount', 'type',
@@ -28,7 +34,12 @@ export class SupabaseDataService {
         .update(updatesDb)
         .eq('id', id);
       if (error) {
-        console.error('[Supabase updateBudgetEntry] Erro ao atualizar entrada:', error.message, error.details, error.hint, error.code, error);
+        // Se o erro for relacionado a token inválido, log específico
+        if (error.message?.includes('Invalid Refresh Token')) {
+          console.error('[Supabase updateBudgetEntry] Token de atualização inválido. Usuário precisa reautenticar.', error);
+        } else {
+          console.error('[Supabase updateBudgetEntry] Erro ao atualizar entrada:', error.message, error.details, error.hint, error.code, error);
+        }
         return false;
       }
       return true;
