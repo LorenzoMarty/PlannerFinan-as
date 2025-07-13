@@ -366,32 +366,13 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = (props) => {
     }
   }, [isInitialized, currentUser, navigate]);
 
-  // Só inicializa o contexto após autenticação do usuário
+  // Inicializa o contexto e escuta mudanças de autenticação do Supabase
   useEffect(() => {
     let unsub: (() => void) | undefined;
     let mounted = true;
-    // Não busca perfil automaticamente ao inicializar
-    const checkSession = async () => {
-      if (typeof window === "undefined") return;
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error("Erro ao obter sessão do Supabase:", error);
-        }
-        // Apenas seta currentUser como null se não autenticado
-        if (!session?.user) {
-          setCurrentUser(null);
-        }
-      } catch (e) {
-        console.error("Erro inesperado ao checar sessão:", e);
-        setCurrentUser(null);
-      } finally {
-        if (mounted) setIsInitialized(true);
-      }
-    };
-    checkSession();
+    setIsInitialized(false);
 
-    // Listen for Supabase auth state changes
+    // Listener único para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[Supabase] Auth state changed:", event, session);
       if (event === "SIGNED_OUT") {
@@ -405,8 +386,29 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = (props) => {
         };
         await loadUserProfile(authUser);
       }
+      if (mounted) setIsInitialized(true);
     });
     unsub = () => subscription?.unsubscribe();
+
+    // Checa sessão inicial apenas uma vez
+    (async () => {
+      if (typeof window === "undefined") return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const authUser = {
+            email: session.user.email || "",
+            name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Usuário",
+            authenticated: true,
+          };
+          await loadUserProfile(authUser);
+        } else {
+          setCurrentUser(null);
+        }
+      } finally {
+        if (mounted) setIsInitialized(true);
+      }
+    })();
 
     return () => {
       mounted = false;
@@ -441,27 +443,7 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = (props) => {
     return () => clearInterval(interval);
   }, [currentUser]);
 
-  // Listen for session changes to reload data when user changes
-  useEffect(() => {
-    const checkSessionChanges = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      // Só tenta recarregar se houver sessão autenticada
-      if (session?.user) {
-        if (session.user.id !== currentUser?.id) {
-          console.log("Session user changed, reloading data");
-          const authUser = {
-            email: session.user.email || "",
-            name: session.user.user_metadata?.name || session.user.email?.split("@")[0] || "Usuário",
-            authenticated: true,
-          };
-          await loadUserProfile(authUser);
-        }
-      }
-    };
-    // Check periodically for session changes
-    const sessionInterval = setInterval(checkSessionChanges, 5000);
-    return () => clearInterval(sessionInterval);
-  }, [currentUser?.id]);
+  // (Removido: polling de sessão e múltiplos listeners)
 
   const loadUserProfile = async (authUser: any) => {
     setIsLoading(true);
