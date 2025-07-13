@@ -35,6 +35,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCategoryForm } from "@/hooks/useCategoryForm";
+import { useCategoryData } from "@/hooks/useCategoryData";
+import { CategoryForm } from "@/components/categories/CategoryForm";
+import { CategoryList } from "@/components/categories/CategoryList";
+import { CategoryStats } from "@/components/categories/CategoryStats";
 
 const colorOptions = [
   { name: "Vermelho", value: "#ef4444", class: "bg-red-500" },
@@ -50,81 +55,26 @@ const colorOptions = [
 export default function Categories() {
   const { categories, entries, addCategory, updateCategory, deleteCategory } =
     useUserData();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "income" | "expense">(
-    "all",
-  );
-  const [formData, setFormData] = useState({
-    name: "",
-    type: "expense" as "income" | "expense",
-    color: "#3b82f6",
-    icon: "📊",
-    description: "",
-  });
-
-  const filteredCategories = categories.filter((category) => {
-    const matchesSearch = category.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "all" || category.type === filterType;
-    return matchesSearch && matchesType;
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.name.trim()) {
-      toast.error("Nome da categoria é obrigatório");
-      return;
-    }
-
-    const categoryData = {
-      name: formData.name,
-      type: formData.type,
-      color: formData.color,
-      icon: formData.icon,
-      description: formData.description,
-    };
-
-    try {
-      if (editingCategory) {
-        updateCategory(editingCategory.id, categoryData);
-        toast.success("Categoria atualizada com sucesso!");
-      } else {
-        addCategory(categoryData);
-        toast.success("Categoria criada com sucesso!");
-      }
-      resetForm();
-    } catch (error) {
-      toast.error("Erro ao salvar categoria");
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      type: "expense",
-      color: "#3b82f6",
-      icon: "📊",
-      description: "",
-    });
-    setEditingCategory(null);
-    setIsDialogOpen(false);
-  };
-
-  const handleEdit = (category: any) => {
-    setEditingCategory(category);
-    setFormData({
-      name: category.name,
-      type: category.type,
-      color: category.color,
-      icon: category.icon,
-      description: category.description || "",
-    });
-    setIsDialogOpen(true);
-  };
+  const {
+    isDialogOpen,
+    setIsDialogOpen,
+    editingCategory,
+    formData,
+    setFormData,
+    handleSubmit,
+    resetForm,
+    handleEdit,
+  } = useCategoryForm(addCategory, updateCategory);
+  const {
+    searchTerm,
+    setSearchTerm,
+    filterType,
+    setFilterType,
+    filteredCategories,
+    getCategoryStats,
+    incomeCategories,
+    expenseCategories,
+  } = useCategoryData(categories, entries);
 
   const handleDelete = (id: string) => {
     try {
@@ -142,28 +92,7 @@ export default function Categories() {
     }).format(amount);
   };
 
-  // Calculate category usage stats
-  const getCategoryStats = (categoryName: string) => {
-    const categoryEntries = entries.filter(
-      (entry) => entry.category === categoryName,
-    );
-    const total = categoryEntries.reduce(
-      (sum, entry) => sum + Math.abs(entry.amount),
-      0,
-    );
-    return {
-      count: categoryEntries.length,
-      total,
-    };
-  };
-
-  const incomeCategories = filteredCategories.filter(
-    (cat) => cat.type === "income",
-  );
-  const expenseCategories = filteredCategories.filter(
-    (cat) => cat.type === "expense",
-  );
-
+  
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
@@ -176,117 +105,15 @@ export default function Categories() {
             </p>
           </div>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setEditingCategory(null)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Categoria
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingCategory ? "Editar" : "Nova"} Categoria
-                </DialogTitle>
-                <DialogDescription>
-                  {editingCategory
-                    ? "Edite as informações da categoria"
-                    : "Crie uma nova categoria para organizar seus lançamentos"}
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome</Label>
-                    <Input
-                      id="name"
-                      placeholder="Ex: Alimentação"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="type">Tipo</Label>
-                    <Select
-                      value={formData.type}
-                      onValueChange={(value: "income" | "expense") =>
-                        setFormData({ ...formData, type: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="income">Receita</SelectItem>
-                        <SelectItem value="expense">Despesa</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="icon">Emoji/Ícone</Label>
-                  <Input
-                    id="icon"
-                    placeholder="📊"
-                    value={formData.icon}
-                    onChange={(e) =>
-                      setFormData({ ...formData, icon: e.target.value })
-                    }
-                    maxLength={2}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Cor</Label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {colorOptions.map((color) => (
-                      <button
-                        key={color.value}
-                        type="button"
-                        className={cn(
-                          "w-8 h-8 rounded-full border-2 transition-all",
-                          formData.color === color.value
-                            ? "border-primary scale-110"
-                            : "border-muted hover:scale-105",
-                          color.class,
-                        )}
-                        onClick={() =>
-                          setFormData({ ...formData, color: color.value })
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descrição (opcional)</Label>
-                  <Input
-                    id="description"
-                    placeholder="Descreva esta categoria..."
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">
-                    {editingCategory ? "Salvar" : "Criar"}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <CategoryForm
+            isDialogOpen={isDialogOpen}
+            setIsDialogOpen={setIsDialogOpen}
+            editingCategory={editingCategory}
+            formData={formData}
+            setFormData={setFormData}
+            handleSubmit={handleSubmit}
+            resetForm={resetForm}
+          />
         </div>
 
         {/* Filters */}
@@ -317,245 +144,20 @@ export default function Categories() {
           </Select>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Tags className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Total de Categorias
-                  </p>
-                  <p className="font-semibold text-xl">{categories.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <CategoryStats
+          categories={categories}
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+        />
 
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Receitas</p>
-                  <p className="font-semibold text-xl">
-                    {incomeCategories.length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center">
-                  <TrendingDown className="w-5 h-5 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Despesas</p>
-                  <p className="font-semibold text-xl">
-                    {expenseCategories.length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Categories Sections */}
-        <div className="space-y-8">
-          {/* Income Categories */}
-          {incomeCategories.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-success" />
-                <h2 className="text-xl font-semibold">Categorias de Receita</h2>
-                <Badge variant="secondary">{incomeCategories.length}</Badge>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {incomeCategories.map((category) => (
-                  <Card key={category.id} className="border-success/20">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm"
-                            style={{ backgroundColor: category.color }}
-                          >
-                            {category.icon}
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">
-                              {category.name}
-                            </CardTitle>
-                            {category.description && (
-                              <p className="text-xs text-muted-foreground">
-                                {category.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEdit(category)}
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(category.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {(() => {
-                        const stats = getCategoryStats(category.name);
-                        return (
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">
-                                Total
-                              </span>
-                              <span className="font-medium text-success">
-                                {formatCurrency(stats.total)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">
-                                Lançamentos
-                              </span>
-                              <span className="font-medium">{stats.count}</span>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Separator */}
-          {incomeCategories.length > 0 && expenseCategories.length > 0 && (
-            <Separator />
-          )}
-
-          {/* Expense Categories */}
-          {expenseCategories.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingDown className="w-5 h-5 text-destructive" />
-                <h2 className="text-xl font-semibold">Categorias de Despesa</h2>
-                <Badge variant="secondary">{expenseCategories.length}</Badge>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {expenseCategories.map((category) => (
-                  <Card key={category.id} className="border-destructive/20">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm"
-                            style={{ backgroundColor: category.color }}
-                          >
-                            {category.icon}
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">
-                              {category.name}
-                            </CardTitle>
-                            {category.description && (
-                              <p className="text-xs text-muted-foreground">
-                                {category.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEdit(category)}
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(category.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {(() => {
-                        const stats = getCategoryStats(category.name);
-                        return (
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">
-                                Total
-                              </span>
-                              <span className="font-medium text-destructive">
-                                {formatCurrency(stats.total)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">
-                                Lançamentos
-                              </span>
-                              <span className="font-medium">{stats.count}</span>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* No Results */}
-          {filteredCategories.length === 0 && (
-            <Card className="border-dashed border-2 border-muted-foreground/25">
-              <CardContent className="flex flex-col items-center justify-center p-8 text-center">
-                <Tags className="w-12 h-12 text-muted-foreground/50 mb-4" />
-                <h3 className="font-semibold mb-2">
-                  Nenhuma categoria encontrada
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {searchTerm || filterType !== "all"
-                    ? "Tente ajustar os filtros ou criar uma nova categoria"
-                    : "Comece criando sua primeira categoria"}
-                </p>
-                <Button onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Categoria
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <CategoryList
+          incomeCategories={incomeCategories}
+          expenseCategories={expenseCategories}
+          getCategoryStats={getCategoryStats}
+          handleEdit={handleEdit}
+          handleDelete={handleDelete}
+          formatCurrency={formatCurrency}
+        />
       </div>
     </AppLayout>
   );

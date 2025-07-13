@@ -26,43 +26,22 @@ import {
   Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useDateLogic } from "@/hooks/useDateLogic";
+import { useBudgetLogic } from "@/hooks/useBudgetLogic";
+import { exportData } from "@/lib/export";
+import { QuickStats } from "@/components/dashboard/QuickStats";
 
 export default function Dashboard() {
-  // Initialize with current month
-  const currentDate = new Date();
-  const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}`;
-
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const { currentUser, activeBudget, entries, createBudget, switchBudget } =
-    useUserData();
-
-  const [selectedBudget, setSelectedBudget] = useState(activeBudget?.id || "");
-
-  const budgets = currentUser?.budgets || [];
-  const currentBudget = activeBudget;
-
-  // Generate period options (last 12 months + current)
-  const generatePeriodOptions = () => {
-    const options = [];
-    const now = new Date();
-
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const label = date.toLocaleDateString("pt-BR", {
-        month: "long",
-        year: "numeric",
-      });
-      options.push({
-        value,
-        label: label.charAt(0).toUpperCase() + label.slice(1),
-      });
-    }
-
-    return options;
-  };
-
-  const periodOptions = generatePeriodOptions();
+  const { selectedMonth, setSelectedMonth, periodOptions } = useDateLogic();
+  const { currentUser, entries } = useUserData();
+  const {
+    budgets,
+    currentBudget,
+    selectedBudget,
+    handleBudgetChange,
+    handleCreateBudget,
+    handleShareBudget,
+  } = useBudgetLogic();
 
   // Filter entries by selected month
   const filteredEntries = entries.filter((entry) => {
@@ -84,68 +63,8 @@ export default function Dashboard() {
 
   const filteredBalance = filteredIncome - filteredExpenses;
 
-  const handleBudgetChange = (budgetId: string) => {
-    setSelectedBudget(budgetId);
-    switchBudget(budgetId);
-  };
-
-  const handleCreateBudget = () => {
-    const name = prompt("Nome da nova planilha:");
-    if (name && name.trim()) {
-      const newBudgetId = createBudget(name.trim());
-      setSelectedBudget(newBudgetId);
-      toast.success("Nova planilha criada!");
-    }
-  };
-
-  const handleShareBudget = () => {
-    if (currentBudget) {
-      navigator.clipboard.writeText(currentBudget.code);
-      toast.success(
-        `Código ${currentBudget.code} copiado! Compartilhe com outros usuários.`,
-      );
-    }
-  };
-
   const handleExportData = () => {
-    if (filteredEntries.length === 0) {
-      toast.error("Nenhum dado para exportar no período selecionado");
-      return;
-    }
-
-    const selectedPeriodName =
-      periodOptions.find((p) => p.value === selectedMonth)?.label ||
-      selectedMonth;
-
-    const exportData = {
-      planilha: currentBudget?.name,
-      periodo: selectedPeriodName,
-      exportadoEm: new Date().toISOString(),
-      resumo: {
-        receitas: filteredIncome,
-        despesas: filteredExpenses,
-        saldo: filteredBalance,
-        totalLancamentos: filteredEntries.length,
-      },
-      lancamentos: filteredEntries.map((entry) => ({
-        data: entry.date,
-        descricao: entry.description,
-        categoria: entry.category,
-        tipo: entry.type === "income" ? "Receita" : "Despesa",
-        valor: entry.amount,
-      })),
-    };
-
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `plannerfin-${selectedPeriodName.toLowerCase().replace(/\s+/g, "-")}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-
-    toast.success("Dados exportados com sucesso!");
+    exportData(filteredEntries, periodOptions, selectedMonth, currentBudget);
   };
 
   if (!currentUser) {
@@ -281,114 +200,14 @@ export default function Dashboard() {
         )}
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Receitas</p>
-                  <p className="font-semibold text-success">
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(filteredIncome)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center">
-                  <TrendingDown className="w-5 h-5 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Despesas</p>
-                  <p className="font-semibold text-destructive">
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(filteredExpenses)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Saldo do Período
-                  </p>
-                  <p
-                    className={`font-semibold ${filteredBalance >= 0 ? "text-success" : "text-destructive"}`}
-                  >
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(filteredBalance)}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Lançamentos do Período
-                  </p>
-                  <p className="font-semibold">{filteredEntries.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-accent" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Colaboradores</p>
-                  <p className="font-semibold">
-                    {(currentBudget?.collaborators.length || 0) + 1}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-warning/10 rounded-lg flex items-center justify-center">
-                  <Share2 className="w-5 h-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Planilhas</p>
-                  <p className="font-semibold">{budgets.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <QuickStats
+          filteredIncome={filteredIncome}
+          filteredExpenses={filteredExpenses}
+          filteredBalance={filteredBalance}
+          filteredEntries={filteredEntries}
+          currentBudget={currentBudget}
+          budgets={budgets}
+        />
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
