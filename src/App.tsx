@@ -7,6 +7,7 @@ import { SettingsProvider } from "@/contexts/SettingsContext";
 import { UserDataProvider } from "@/contexts/UserDataContext";
 import { AutoSaveNotification } from "@/components/layout/AutoSaveNotification";
 import { supabase } from "@/lib/supabase";
+import type { Session } from "@supabase/supabase-js";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Categories from "./pages/Categories";
@@ -15,45 +16,71 @@ import Settings from "./pages/Settings";
 import Collaboration from "./pages/Collaboration";
 import NotFound from "./pages/NotFound";
 
-// Protected Route wrapper - uses UserDataContext for auth state
+// Protected Route wrapper - uses Supabase session for auth state
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const checkAuth = () => {
-      if (typeof window === "undefined") return;
+    // Check initial session
+    const checkSession = async () => {
+      try {
+        const {
+          data: { session: currentSession },
+          error,
+        } = await supabase.auth.getSession();
 
-      // Only check localStorage for initial authentication state
-      const localUser = localStorage.getItem("plannerfinUser");
-      if (localUser) {
-        try {
-          const user = JSON.parse(localUser);
-          setIsAuthenticated(user.authenticated === true);
-        } catch {
-          setIsAuthenticated(false);
+        if (error) {
+          console.error("Session error:", error);
+          setSession(null);
+          return;
         }
+
+        setSession(currentSession);
+      } catch (error) {
+        console.error("Failed to get session:", error);
+        setSession(null);
+      }
+    };
+
+    checkSession();
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state change:", event, session?.user?.id);
+
+      if (event === "SIGNED_OUT" || !session) {
+        setSession(null);
+        // Clear any cached data when signed out
+        localStorage.removeItem("plannerfinUser");
       } else {
-        setIsAuthenticated(false);
+        setSession(session);
       }
+    });
+
+    // Listen for online/offline changes
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => {
+      setIsOnline(false);
+      // When going offline, destroy session and redirect to login
+      supabase.auth.signOut();
+      setSession(null);
     };
 
-    checkAuth();
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
-    // Listen for storage changes only (not auth state changes)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "plannerfinUser") {
-        checkAuth();
-      }
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("storage", handleStorageChange);
-      return () => window.removeEventListener("storage", handleStorageChange);
-    }
   }, []);
 
-  if (isAuthenticated === null) {
-    // Loading state
+  // Show loading while checking session
+  if (session === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -61,7 +88,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  // Show offline message if offline
+  if (!isOnline) {
+    return (
+      <div className="min-h-screen flex items-center justify-center flex-col gap-4">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-destructive">
+            Sem conexão
+          </h2>
+          <p className="text-muted-foreground">
+            Você precisa estar online para usar o aplicativo
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if no session
+  if (!session) {
     return <Navigate to="/" replace />;
   }
 
