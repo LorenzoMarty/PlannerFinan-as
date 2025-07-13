@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useUserData } from "@/contexts/UserDataContext";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -40,32 +41,13 @@ export default function Login() {
     checkAuth();
   }, [navigate]);
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (email, password) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data.session?.user) {
-        const userData = {
-          email: data.session.user.email || email,
-          name: data.session.user.user_metadata?.name || email.split("@")[0],
-        };
-
-        // Initialize user data context - the session will be handled by App.tsx
-        await setUser(userData);
-
-        // Navigation will be handled automatically by the ProtectedRoute in App.tsx
-        // when the auth state changes
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      // The onAuthStateChange listener in ProtectedRoute will handle the redirect and user context update.
     } catch (error) {
-      console.error("Login error:", error);
-      throw error; // Let the form handle the error display
+      toast.error(error.message || "Erro ao fazer login");
     }
   };
 
