@@ -117,22 +117,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
       clearUser();
       localStorage.removeItem("plannerfinUser");
       
-      // Then attempt to sign out from Supabase
-      await supabase.auth.signOut();
-      
-      // Force a session check to ensure we're signed out
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // If we still have a session, force a session expiration
-        await supabase.auth.invalidateSession();
-      }
+      // Sign out from Supabase which will clear the current session
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
 
       toast({
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso",
       });
 
-      // Finally, navigate and force a page reload to clear any lingering state
+      // Force a page reload to clear any lingering state
       window.location.href = "/";
     } catch (error) {
       console.error("Logout error:", error);
