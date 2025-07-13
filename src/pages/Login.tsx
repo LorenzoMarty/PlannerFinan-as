@@ -43,10 +43,29 @@ export default function Login() {
 
   const handleLogin = async (email, password) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      // The onAuthStateChange listener in ProtectedRoute will handle the redirect and user context update.
+      
+      if (data.session) {
+        // Set the user data
+        const userData = {
+          email: data.session.user.email || "",
+          name: data.session.user.user_metadata?.name || data.session.user.email?.split("@")[0] || "Usuário",
+        };
+
+        // Store the session
+        await supabase.auth.setSession(data.session);
+        
+        // Update user context
+        await setUser(userData);
+        
+        // Navigate to dashboard
+        navigate("/dashboard", { replace: true });
+      } else {
+        throw new Error("No session data returned");
+      }
     } catch (error) {
+      console.error("Login error:", error);
       toast.error(error.message || "Erro ao fazer login");
     }
   };
