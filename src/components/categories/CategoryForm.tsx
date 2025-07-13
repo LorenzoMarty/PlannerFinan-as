@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const colorOptions = [
@@ -97,9 +98,7 @@ export const CategoryForm = ({
             id="icon"
             placeholder="📊"
             value={formData.icon}
-            onChange={(e) =>
-              setFormData({ ...formData, icon: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
             maxLength={2}
           />
         </div>
@@ -118,9 +117,7 @@ export const CategoryForm = ({
                     : "border-muted hover:scale-105",
                   color.class,
                 )}
-                onClick={() =>
-                  setFormData({ ...formData, color: color.value })
-                }
+                onClick={() => setFormData({ ...formData, color: color.value })}
               />
             ))}
           </div>
