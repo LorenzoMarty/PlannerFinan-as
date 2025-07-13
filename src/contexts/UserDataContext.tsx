@@ -377,9 +377,18 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       // Clear all storage
       if (typeof window !== "undefined") {
         // Clear localStorage
-        localStorage.clear();
-        // Clear session storage
-        sessionStorage.clear();
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith("plannerfin")) {
+            localStorage.removeItem(key);
+          }
+        });
+        
+        // Clear sessionStorage data
+        Object.keys(sessionStorage).forEach(key => {
+          if (key.startsWith("plannerfin")) {
+            sessionStorage.removeItem(key);
+          }
+        });
       }
     } catch (error) {
       console.error("Error during cleanup:", error);
@@ -387,28 +396,10 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
       // Always reset state
       setCurrentUser(null);
       setIsLoading(false);
-      setUseSupabase(false);
+      setUseSupabase(true);
       setIsInitialized(false);
     }
   }, [useSupabase]);
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith("plannerfin")) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      // Clear sessionStorage data
-      Object.keys(sessionStorage).forEach(key => {
-        if (key.startsWith("plannerfin")) {
-          sessionStorage.removeItem(key);
-        }
-      });
-
-      // Reset state flags
-      setIsLoading(false);
-      setUseSupabase(true);
-    }
-  };
 
   const createBudget = async (name: string): Promise<string> => {
     if (!currentUser) return "";

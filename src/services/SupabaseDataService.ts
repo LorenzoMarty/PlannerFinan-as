@@ -25,11 +25,16 @@ export class SupabaseDataService {
   private static async checkSession(): Promise<SupabaseSession | null> {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        this.logError('checkSession', error);
+      if (error || !session) {
+        this.logError('checkSession', error || 'No session found');
         return null;
       }
-      return session;
+      return {
+        user: {
+          id: session.user.id,
+          email: session.user.email || ''
+        }
+      };
     } catch (error) {
       this.logError('checkSession', error);
       return null;
@@ -396,6 +401,41 @@ export class SupabaseDataService {
       return true;
     } catch (error) {
       this.logError('deleteBudgetEntry', error);
+      return false;
+    }
+  }
+
+  public static async createBudget(budget: Budget): Promise<boolean> {
+    try {
+      const session = await this.checkSession();
+      if (!session) return false;
+
+      // Ensure owner_id matches the current user
+      if (budget.ownerId !== session.user.id) {
+        this.logError('createBudget', 'Owner ID mismatch');
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('budgets')
+        .insert({
+          id: budget.id,
+          name: budget.name,
+          code: budget.code,
+          owner_id: budget.ownerId,
+          collaborators: budget.collaborators,
+          created_at: budget.createdAt,
+          updated_at: budget.updatedAt
+        });
+
+      if (error) {
+        this.logError('createBudget', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      this.logError('createBudget', error);
       return false;
     }
   }
