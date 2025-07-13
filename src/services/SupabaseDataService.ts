@@ -9,10 +9,23 @@ import type {
 export class SupabaseDataService {
   // Atualiza uma entrada de orçamento no Supabase
   static async updateBudgetEntry(id: string, updates: Partial<BudgetEntry>): Promise<boolean> {
+    // Converte camelCase para snake_case e filtra apenas campos válidos
+    const allowed = [
+      'date', 'description', 'category', 'amount', 'type',
+      'user_id', 'budget_id', 'created_at', 'updated_at'
+    ];
+    const toSnake = (str: string) => str.replace(/[A-Z]/g, l => '_' + l.toLowerCase());
+    const updatesDb: Record<string, any> = {};
+    Object.entries(updates).forEach(([key, value]) => {
+      const snake = toSnake(key);
+      if (allowed.includes(snake)) {
+        updatesDb[snake] = value;
+      }
+    });
     try {
       const { error } = await supabase
         .from('budget_entries')
-        .update(updates)
+        .update(updatesDb)
         .eq('id', id);
       if (error) {
         console.error('[Supabase updateBudgetEntry] Erro ao atualizar entrada:', error.message, error.details, error.hint, error.code, error);
