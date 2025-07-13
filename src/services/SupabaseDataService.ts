@@ -369,6 +369,63 @@ export class SupabaseDataService {
     }
   }
 
+  static async deleteBudget(budgetId: string): Promise<boolean> {
+    try {
+      // First, check if the budget exists and user has access
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        console.error("No valid session for budget deletion");
+        return false;
+      }
+
+      const { data: budget, error: budgetError } = await supabase
+        .from("budgets")
+        .select("owner_id, collaborators")
+        .eq("id", budgetId)
+        .single();
+
+      if (budgetError) {
+        console.error("Error checking budget access:", budgetError);
+        return false;
+      }
+
+      // Verify user has access and is the owner
+      const userId = session.user.id;
+      if (budget.owner_id !== userId) {
+        console.error("User is not the owner of this budget");
+        return false;
+      }
+
+      // Delete all related entries first
+      const { error: entriesError } = await supabase
+        .from("budget_entries")
+        .delete()
+        .eq("budget_id", budgetId);
+
+      if (entriesError) {
+        console.error("Error deleting budget entries:", entriesError);
+        return false;
+      }
+
+      // Then delete the budget
+      const { error: deleteError } = await supabase
+        .from("budgets")
+        .delete()
+        .eq("id", budgetId);
+
+      if (deleteError) {
+        console.error("Error deleting budget:", deleteError);
+        return false;
+      }
+
+      console.log("Budget deleted successfully:", budgetId);
+      return true;
+    } catch (error) {
+      console.error("Error in deleteBudget:", error);
+      return false;
+    }
+  }
+
   // ==================== BUDGET ENTRIES ====================
 
   static async createBudgetEntry(
