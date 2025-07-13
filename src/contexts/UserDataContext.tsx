@@ -219,17 +219,37 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
 
   // Initialize context and setup cleanup
   useEffect(() => {
-    setIsInitialized(true);
+    let mounted = true;
+
+    const initialize = async () => {
+      try {
+        // Verificar disponibilidade do Supabase de forma assíncrona
+        const isAvailable = await SupabaseDataService.checkTablesAvailability();
+        if (mounted) {
+          setUseSupabase(isAvailable);
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error("Error checking Supabase availability:", error);
+        if (mounted) {
+          setUseSupabase(false);
+          setIsInitialized(true);
+        }
+      }
+    };
 
     // Subscribe to auth state changes for session cleanup
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' && mounted) {
         clearUser();
       }
     });
 
+    initialize();
+
     // Cleanup function
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       // Clear state on unmount
       setCurrentUser(null);
@@ -281,19 +301,27 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   };
 
   const loadUserProfile = async (authUser: any) => {
-    setIsLoading(true);
+    if (!authUser?.email) {
+      console.error("Invalid user data");
+      return;
+    }
 
     try {
-      // Get current Supabase session to ensure we have the correct user ID
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      let userId = '';
+      
+      // Tentar obter o ID do usuário de forma mais eficiente
+      if (useSupabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        userId = session?.user?.id || '';
+      }
 
-      const userId = session?.user?.id || btoa(authUser.email);
+      // Se não tiver ID do Supabase, gerar um baseado no email
+      if (!userId) {
+        userId = btoa(authUser.email);
+      }
 
-      if (useSupabase && session?.user && !sessionError) {
-        // Try to load from Supabase
+      // Se estivermos usando Supabase, tentar carregar o perfil
+      if (useSupabase) {
         try {
           console.log("Loading user profile from Supabase for:", userId);
           const supabaseData = await SupabaseDataService.getUserProfile(userId);
@@ -335,7 +363,23 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({
   };
 
   const setUser = async (user: { email: string; name: string }) => {
-    await loadUserProfile(user);
+    setIsLoading(true);
+    try {
+      // Primeiro, verificar se o Supabase está disponível
+      const isAvailable = await SupabaseDataService.checkTablesAvailability();
+      if (!isAvailable) {
+        console.warn("Supabase não está disponível, usando localStorage");
+        setUseSupabase(false);
+      }
+
+      await loadUserProfile(user);
+    } catch (error) {
+      console.error("Error setting user:", error);
+      setUseSupabase(false);
+      await loadUserProfile(user);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateProfile = async (updates: {
