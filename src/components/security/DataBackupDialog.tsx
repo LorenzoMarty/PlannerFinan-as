@@ -77,8 +77,9 @@ export const DataBackupDialog: React.FC<DataBackupDialogProps> = ({
       URL.revokeObjectURL(url);
 
       setMessage({ type: "success", text: "Backup exportado com sucesso!" });
-    } catch (error) {
-      setMessage({ type: "error", text: "Erro ao exportar backup" });
+    } catch (error: any) {
+      console.error("Erro ao exportar backup:", error);
+      setMessage({ type: "error", text: `Erro ao exportar backup: ${error.message || error}` });
     } finally {
       setIsProcessing(false);
     }
@@ -111,8 +112,9 @@ export const DataBackupDialog: React.FC<DataBackupDialogProps> = ({
           text: "Erro ao importar dados. Verifique o formato do arquivo.",
         });
       }
-    } catch (error) {
-      setMessage({ type: "error", text: "Formato de dados inválido" });
+    } catch (error: any) {
+      console.error("Erro ao importar dados:", error);
+      setMessage({ type: "error", text: `Erro ao importar dados: ${error.message || error}` });
     } finally {
       setIsProcessing(false);
     }
@@ -126,6 +128,10 @@ export const DataBackupDialog: React.FC<DataBackupDialogProps> = ({
     reader.onload = (e) => {
       const content = e.target?.result as string;
       setImportData(content);
+    };
+    reader.onerror = (error: any) => {
+      console.error("Erro ao ler o arquivo:", error);
+      setMessage({ type: "error", text: `Erro ao ler o arquivo: ${error.message || error}` });
     };
     reader.readAsText(file);
   };
@@ -143,8 +149,9 @@ export const DataBackupDialog: React.FC<DataBackupDialogProps> = ({
       } else {
         setMessage({ type: "error", text: "Erro ao criar backup local" });
       }
-    } catch (error) {
-      setMessage({ type: "error", text: "Erro ao criar backup" });
+    } catch (error: any) {
+      console.error("Erro ao criar backup local:", error);
+      setMessage({ type: "error", text: `Erro ao criar backup local: ${error.message || error}` });
     } finally {
       setIsProcessing(false);
     }
