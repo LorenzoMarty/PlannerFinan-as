@@ -1,79 +1,53 @@
 import SimpleLoginForm from "@/components/auth/SimpleLoginForm";
 import { useNavigate } from "react-router-dom";
-import { useUserData } from "@/contexts/UserDataContext";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { setUser } = useUserData();
-  // Check if user is already logged in
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const checkAuth = async () => {
-      if (typeof window === "undefined") return;
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        const userData = {
-          email: session.user.email || "",
-          name:
-            session.user.user_metadata?.name ||
-            session.user.email?.split("@")[0] ||
-            "Usuário",
-        };
-
-        localStorage.setItem(
-          "plannerfinUser",
-          JSON.stringify({
-            ...userData,
-            authenticated: true,
-            loginTime: new Date().toISOString(),
-          }),
-        );
-
-        await setUser(userData);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
         navigate("/dashboard");
+      } else {
+        setLoading(false);
       }
     };
 
-    checkAuth();
-  }, [navigate, setUser]);
+    checkSession();
 
-  const handleLogin = async (email: string, password: string) => {
-    if (typeof window === "undefined") return;
-
-    try {
-      // Get the current session after login
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session?.user) {
-        const userData = {
-          email: session.user.email || email,
-          name: session.user.user_metadata?.name || email.split("@")[0],
-        };
-
-        // Store user info in localStorage
-        localStorage.setItem(
-          "plannerfinUser",
-          JSON.stringify({
-            ...userData,
-            authenticated: true,
-            loginTime: new Date().toISOString(),
-          }),
-        );
-
-        // Initialize user data context
-        await setUser(userData);
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
         navigate("/dashboard");
       }
+    });
+
+    return () => {
+      authListener?.unsubscribe();
+    };
+  }, [navigate]);
+
+  const handleLogin = async (email, password) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      // The onAuthStateChange listener will handle the redirect
     } catch (error) {
-      console.error("Login handling error:", error);
+      toast.error(error.message || "Erro ao fazer login");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return <SimpleLoginForm onLogin={handleLogin} />;
 }

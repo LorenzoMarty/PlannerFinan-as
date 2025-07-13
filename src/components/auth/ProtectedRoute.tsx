@@ -1,32 +1,59 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 // Protected Route wrapper - uses Supabase session for auth state
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const handleOnline = () => {
+      // Re-check auth when back online
+      checkSession();
+    };
+
+    const handleOffline = () => {
+      // Force logout and clear local data when offline
+      localStorage.removeItem("plannerfinUser");
+      setIsAuthenticated(false);
+      toast.error("Você está offline. A sessão foi encerrada.");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    const checkSession = async () => {
       try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-        if (error || !session) {
-          // Se offline ou sem sessão, destrói localStorage e força logout
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        setIsAuthenticated(!!session);
+        if (!session) {
           localStorage.removeItem("plannerfinUser");
-          setIsAuthenticated(false);
-        } else {
-          setIsAuthenticated(true);
         }
-      } catch {
-        // Qualquer erro (incluindo offline) destrói sessão local
+      } catch (error) {
+        console.error("Error checking session:", error);
         localStorage.removeItem("plannerfinUser");
         setIsAuthenticated(false);
       }
     };
-    checkAuth();
+
+    checkSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setIsAuthenticated(!!session);
+        if (event === "SIGNED_OUT") {
+          localStorage.removeItem("plannerfinUser");
+        }
+      },
+    );
+
+    return () => {
+      authListener?.unsubscribe();
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, []);
 
   if (isAuthenticated === null) {
