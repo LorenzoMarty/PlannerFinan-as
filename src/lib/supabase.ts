@@ -34,6 +34,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 export const signIn = async (email: string, password: string) => {
+  // First clear any existing session data
+  localStorage.removeItem("plannerfinUser");
+  await supabase.auth.signOut();
+  
+  // Then attempt to sign in
   return supabase.auth.signInWithPassword({ email, password });
 };
 
@@ -42,6 +47,10 @@ export const signUp = async (
   password: string,
   name?: string,
 ) => {
+  // First clear any existing session data
+  localStorage.removeItem("plannerfinUser");
+  await supabase.auth.signOut();
+  
   return supabase.auth.signUp({
     email,
     password,
@@ -54,5 +63,19 @@ export const signUp = async (
 };
 
 export const getSession = async () => {
-  return supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getSession();
+  
+  if (error || !data.session) {
+    localStorage.removeItem("plannerfinUser");
+    return { data: { session: null }, error };
+  }
+  
+  // Verify session is still valid
+  const { error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError) {
+    localStorage.removeItem("plannerfinUser");
+    return { data: { session: null }, error: refreshError };
+  }
+  
+  return { data, error: null };
 };

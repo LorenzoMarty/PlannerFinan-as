@@ -113,16 +113,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const handleLogout = async () => {
     try {
-      // Clear local storage and user data first
-      localStorage.removeItem("plannerfinUser");
+      // First, immediately clear local state to prevent any race conditions
       clearUser();
-
-      // Then sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      localStorage.removeItem("plannerfinUser");
       
-      if (error) {
-        console.error("Error signing out:", error);
-        // Continue with logout even if there's an error
+      // Then attempt to sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Force a session check to ensure we're signed out
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // If we still have a session, force a session expiration
+        await supabase.auth.invalidateSession();
       }
 
       toast({
@@ -130,12 +132,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
         description: "Você foi desconectado com sucesso",
       });
 
-      // Navigate last
-      navigate("/", { replace: true });
+      // Finally, navigate and force a page reload to clear any lingering state
+      window.location.href = "/";
     } catch (error) {
       console.error("Logout error:", error);
-      // Ensure navigation happens even if there's an error
-      navigate("/", { replace: true });
+      // Ensure we clean up even if there's an error
+      clearUser();
+      localStorage.removeItem("plannerfinUser");
+      window.location.href = "/";
     }
   };
 
