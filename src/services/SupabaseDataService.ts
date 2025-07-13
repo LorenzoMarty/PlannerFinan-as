@@ -58,22 +58,24 @@ export class SupabaseDataService {
     }
 
     try {
-      // Test if we can access the user_profiles table
+      console.log("Checking Supabase tables availability..."); // Adicionado log
+
       const { error } = await supabase
         .from("user_profiles")
         .select("id")
         .limit(1);
 
       if (error) {
-        console.log("Supabase tables not available:", error.message);
+        console.error("Supabase tables not available:", error.message);
         this.tablesAvailable = false;
         return false;
       }
 
       this.tablesAvailable = true;
+      console.log("Supabase tables are available."); // Adicionado log
       return true;
     } catch (error) {
-      console.log("Supabase connectivity check failed:", error);
+      console.error("Supabase connectivity check failed:", error);
       this.tablesAvailable = false;
       return false;
     }
