@@ -14,6 +14,32 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: false,
+    storageKey: 'plannerfinance_auth',
+    storage: {
+      getItem: (key) => {
+        try {
+          return Promise.resolve(localStorage.getItem(key));
+        } catch {
+          return Promise.resolve(null);
+        }
+      },
+      setItem: (key, value) => {
+        try {
+          localStorage.setItem(key, value);
+          return Promise.resolve();
+        } catch {
+          return Promise.resolve();
+        }
+      },
+      removeItem: (key) => {
+        try {
+          localStorage.removeItem(key);
+          return Promise.resolve();
+        } catch {
+          return Promise.resolve();
+        }
+      },
+    },
   },
   db: {
     schema: "public",
@@ -35,21 +61,21 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 export const signIn = async (email: string, password: string) => {
   try {
-    // First clear any existing session data and perform thorough cleanup
+    // Verificar se já existe uma sessão
+    const { data: existingSession } = await supabase.auth.getSession();
+    
+    // Se existir uma sessão, fazer logout primeiro
+    if (existingSession?.session) {
+      await supabase.auth.signOut();
+    }
+
+    // Limpar dados locais apenas após confirmar que não há sessão ativa
     localStorage.removeItem("plannerfinUser");
-    sessionStorage.clear();
-    await Promise.all([
-      supabase.auth.signOut(),
-      new Promise(resolve => {
-        // Clear any cached data
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('plannerfin')) {
-            localStorage.removeItem(key);
-          }
-        });
-        resolve(true);
-      })
-    ]);
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('plannerfin')) {
+        localStorage.removeItem(key);
+      }
+    });
     
     // Then attempt to sign in
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -92,19 +118,39 @@ export const signUp = async (
 };
 
 export const getSession = async () => {
-  const { data, error } = await supabase.auth.getSession();
-  
-  if (error || !data.session) {
+  try {
+    // Tentar obter a sessão atual
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Error getting session:', error);
+      localStorage.removeItem("plannerfinUser");
+      return { data: { session: null }, error };
+    }
+    
+    // Se não houver sessão, limpar dados e retornar
+    if (!data.session) {
+      localStorage.removeItem("plannerfinUser");
+      return { data: { session: null }, error: null };
+    }
+    
+    // Se a sessão existe mas está próxima de expirar, tentar renovar
+    const expiresAt = data.session.expires_at;
+    const now = Math.floor(Date.now() / 1000); // Converter para segundos
+    const timeToExpire = expiresAt - now;
+    
+    if (timeToExpire < 300) { // Se faltam menos de 5 minutos
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        localStorage.removeItem("plannerfinUser");
+        return { data: { session: null }, error: refreshError };
+      }
+    }
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Unexpected error in getSession:', error);
     localStorage.removeItem("plannerfinUser");
     return { data: { session: null }, error };
   }
-  
-  // Verify session is still valid
-  const { error: refreshError } = await supabase.auth.refreshSession();
-  if (refreshError) {
-    localStorage.removeItem("plannerfinUser");
-    return { data: { session: null }, error: refreshError };
-  }
-  
-  return { data, error: null };
 };
