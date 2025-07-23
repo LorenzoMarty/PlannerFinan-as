@@ -34,6 +34,7 @@ export const CategoryForm = ({
   isDialogOpen,
   setIsDialogOpen,
   editingCategory,
+  setEditingCategory,
   formData,
   setFormData,
   handleSubmit,

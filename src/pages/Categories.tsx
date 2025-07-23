@@ -59,6 +59,7 @@ export default function Categories() {
     isDialogOpen,
     setIsDialogOpen,
     editingCategory,
+    setEditingCategory,
     formData,
     setFormData,
     handleSubmit,
@@ -109,6 +110,7 @@ export default function Categories() {
             isDialogOpen={isDialogOpen}
             setIsDialogOpen={setIsDialogOpen}
             editingCategory={editingCategory}
+            setEditingCategory={setEditingCategory}
             formData={formData}
             setFormData={setFormData}
             handleSubmit={handleSubmit}
